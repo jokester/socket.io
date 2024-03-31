@@ -404,9 +404,10 @@ export class Server<
   }
 
   /**
-   * Attaches socket.io to a server or port.
+   * Attaches socket.io to a HTTP server
    *
    * @param srv - server or port
+   * If a port in number or string is specified, create a new HTTP Server and listen on the port
    * @param opts - options passed to engine.io
    * @return self
    */
