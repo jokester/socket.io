@@ -11,6 +11,7 @@ import type {
   ServerOptions as EngineOptions,
   AttachOptions,
   BaseServer,
+  Socket as RawSocket,
 } from "engine.io";
 import { Client } from "./client";
 import { EventEmitter } from "events";
@@ -656,12 +657,12 @@ export class Server<
   /**
    * Called with each incoming transport connection.
    *
-   * @param {engine.Socket} conn
+   * @param conn engine.io socket
    * @return self
    * @private
    */
-  private onconnection(conn): this {
-    debug("incoming connection with id %s", conn.id);
+  private onconnection(conn: RawSocket): this {
+    debug("incoming connection with id %s", (conn as any).id);
     const client = new Client(this, conn);
     if (conn.protocol === 3) {
       // @ts-ignore
