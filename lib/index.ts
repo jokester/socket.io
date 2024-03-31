@@ -202,7 +202,7 @@ export class Server<
   private _adapter?: AdapterConstructor;
   private _serveClient: boolean;
   private readonly opts: Partial<ServerOptions>;
-  private eio: Engine;
+  private eio: Engine; // Only truthy if inited via attach() // XXX: how is this different from this.engine?
   private _path: string;
   private clientPathRegex: RegExp;
 
