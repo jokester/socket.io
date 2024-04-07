@@ -177,7 +177,7 @@ export class Server<
   readonly encoder: Encoder;
 
   /**
-   * @private
+   * @private existing namespaces name => namespace
    */
   _nsps: Map<
     string,
@@ -384,6 +384,7 @@ export class Server<
     if (!arguments.length) return this._adapter;
     this._adapter = v;
     for (const nsp of this._nsps.values()) {
+      // for all existing nsps, switch to the new adapter
       nsp._initAdapter();
     }
     return this;
