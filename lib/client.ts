@@ -53,6 +53,7 @@ export class Client<
   private connectTimeout?: NodeJS.Timeout;
 
   /**
+   * "Client": a handle of real client, in server
    * Client constructor.
    *
    * @param server instance

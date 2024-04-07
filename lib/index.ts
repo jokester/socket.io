@@ -405,7 +405,13 @@ export class Server<
   }
 
   /**
-   * Attaches socket.io to a HTTP server
+   * XXX: "main" method to attach?
+   *
+   * callsites:
+   * 1. listen()
+   * 2. constructor()
+   *
+   * Attaches socket.io to an HTTP server
    *
    * @param srv - server or port
    * If a port in number or string is specified, create a new HTTP Server and listen on the port
@@ -448,6 +454,11 @@ export class Server<
     return this;
   }
 
+  /**
+   * attach uServer app
+   * @param app
+   * @param opts
+   */
   public attachApp(app /*: TemplatedApp */, opts: Partial<ServerOptions> = {}) {
     // merge the options passed to the Socket.IO server
     Object.assign(opts, this.opts);
@@ -645,6 +656,7 @@ export class Server<
   }
 
   /**
+   * as public method, this is "advanced usage"
    * Binds socket.io to an engine.io instance.
    *
    * @param engine engine.io (or compatible) server
