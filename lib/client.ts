@@ -251,7 +251,7 @@ export class Client<
    *
    * @private
    */
-  private ondata(data): void {
+  private ondata(data: unknown): void {
     // try/catch is needed for protocol violations (GH-1880)
     try {
       this.decoder.add(data);
