@@ -6,7 +6,7 @@ import { createDeflate, createGzip, createBrotliCompress } from "zlib";
 import accepts = require("accepts");
 import { pipeline } from "stream";
 import path = require("path");
-import { attach, Server as Engine, uServer } from "engine.io";
+import { attach, Server as Engine, uServer } from "engine.io/lib/engine.io";
 import type {
   ServerOptions as EngineOptions,
   AttachOptions,
@@ -411,7 +411,7 @@ export class Server<
    * 1. listen()
    * 2. constructor()
    *
-   * Attaches socket.io to an HTTP server
+   * Attaches socket.io to an HTTP server, by creating an eio.Server
    *
    * @param srv - server or port
    * If a port in number or string is specified, create a new HTTP Server and listen on the port
@@ -676,7 +676,7 @@ export class Server<
    * @private
    */
   private onconnection(conn: RawSocket): this {
-    debug("incoming connection with id %s", (conn as any).id);
+    debug("incoming connection with id %s", (conn as RawSocket).id);
     const client = new Client(this, conn);
     if (conn.protocol === 3) {
       // @ts-ignore

@@ -62,7 +62,7 @@ export class Client<
    */
   constructor(
     server: Server<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
-    conn: any
+    conn: RawSocket
   ) {
     this.server = server;
     this.conn = conn;
