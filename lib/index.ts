@@ -1,10 +1,10 @@
-import http = require("http");
+import type http from 'http';
 import type { Server as HTTPSServer } from "https";
 import type { Http2SecureServer, Http2Server } from "http2";
-import { createReadStream } from "fs";
-import { createDeflate, createGzip, createBrotliCompress } from "zlib";
+import { createReadStream } from "./uws.mock";
+import { createDeflate, createGzip, createBrotliCompress } from "./uws.mock";
 import accepts = require("accepts");
-import { pipeline } from "stream";
+import { pipeline } from "./uws.mock";
 import path = require("path");
 import { attach, Server as Engine, uServer } from "engine.io/lib/engine.io";
 import type {
@@ -12,7 +12,7 @@ import type {
   AttachOptions,
   BaseServer,
   Socket as RawSocket,
-} from "engine.io";
+} from "engine.io/lib/engine.io";
 import { Client } from "./client";
 import { EventEmitter } from "events";
 import { ExtendedError, Namespace, ServerReservedEventsMap } from "./namespace";
@@ -41,7 +41,7 @@ import {
   EventNamesWithAck,
   FirstNonErrorArg,
 } from "./typed-events";
-import { patchAdapter, restoreAdapter, serveFile } from "./uws";
+import { patchAdapter, restoreAdapter, serveFile } from "./uws.mock";
 import corsMiddleware from "cors";
 
 const debug = debugModule("socket.io:server");
@@ -1113,10 +1113,11 @@ emitterMethods.forEach(function (fn) {
   };
 });
 
-module.exports = (srv?, opts?) => new Server(srv, opts);
-module.exports.Server = Server;
-module.exports.Namespace = Namespace;
-module.exports.Socket = Socket;
+const defaultExport = (srv?, opts?) => new Server(srv, opts);
+export default defaultExport;
+defaultExport.Server = Server;
+defaultExport.Namespace = Namespace;
+defaultExport.Socket = Socket;
 
 export {
   Socket,
