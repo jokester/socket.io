@@ -22,7 +22,7 @@ import {
   SessionAwareAdapter,
   Room,
   SocketId,
-} from "socket.io-adapter";
+} from "socket.io-adapter/lib";
 import * as parser from "socket.io-parser";
 import type { Encoder } from "socket.io-parser";
 import debugModule from "debug";

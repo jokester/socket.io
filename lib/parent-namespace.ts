@@ -6,8 +6,8 @@ import type {
   DefaultEventsMap,
   EventNamesWithoutAck,
 } from "./typed-events";
-import { Adapter } from "socket.io-adapter";
-import type { BroadcastOptions } from "socket.io-adapter";
+import { Adapter } from "socket.io-adapter/lib";
+import type { BroadcastOptions } from "socket.io-adapter/lib";
 import debugModule from "debug";
 
 const debug = debugModule("socket.io:parent-namespace");
