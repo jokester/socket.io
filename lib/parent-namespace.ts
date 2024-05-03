@@ -6,7 +6,7 @@ import type {
   DefaultEventsMap,
   EventNamesWithoutAck,
 } from "./typed-events";
-import { Adapter } from "socket.io-adapter/lib";
+import { Adapter } from "socket.io-adapter/lib/in-memory-adapter";
 import type { BroadcastOptions } from "socket.io-adapter/lib";
 import debugModule from "debug";
 
