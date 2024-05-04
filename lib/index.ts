@@ -177,12 +177,15 @@ export class Server<
   readonly encoder: Encoder;
 
   /**
-   * @private existing namespaces name => namespace
+   * @private existing *concrete* namespaces name => namespace
    */
   _nsps: Map<
     string,
     Namespace<ListenEvents, EmitEvents, ServerSideEvents, SocketData>
   > = new Map();
+  /**
+   * @private consulted when a client wants to join a namespace
+   */
   private parentNsps: Map<
     ParentNspNameMatchFn,
     ParentNamespace<ListenEvents, EmitEvents, ServerSideEvents, SocketData>
@@ -710,6 +713,7 @@ export class Server<
     ) => void
   ): Namespace<ListenEvents, EmitEvents, ServerSideEvents, SocketData> {
     if (typeof name === "function" || name instanceof RegExp) {
+      // register a *parent* namespace, i.e. a namespace generator defined as Function OR RegExp
       const parentNsp = new ParentNamespace(this);
       debug("initializing parent namespace %s", parentNsp.name);
       if (typeof name === "function") {
@@ -733,9 +737,9 @@ export class Server<
     let nsp = this._nsps.get(name);
     if (!nsp) {
       for (const [regex, parentNamespace] of this.parentNamespacesFromRegExp) {
-        if (regex.test(name as string)) {
+        if (regex.test(name)) {
           debug("attaching namespace %s to parent namespace %s", name, regex);
-          return parentNamespace.createChild(name as string);
+          return parentNamespace.createChild(name);
         }
       }
 

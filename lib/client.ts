@@ -6,16 +6,19 @@ import type { Server } from "./index";
 import type { Namespace } from "./namespace";
 import type { EventsMap } from "./typed-events";
 import type { Socket } from "./socket";
-import type { SocketId } from "socket.io-adapter";
-import type { Socket as RawSocket } from "engine.io";
+import type { SocketId } from "socket.io-adapter/lib";
+import type { Socket as RawSocket } from "engine.io/lib/engine.io";
 
 const debug = debugModule("socket.io:client");
 
+/**
+ * FIXME this can be imported from socket.io-parser ?
+ */
 interface WriteOptions {
-  compress?: boolean;
-  volatile?: boolean;
-  preEncoded?: boolean;
-  wsPreEncoded?: string;
+  compress?: boolean; // send to engine.io
+  volatile?: boolean; // handled within socket.io
+  preEncoded?: boolean; // handled within socket.io
+  wsPreEncoded?: string; // handled within socket.io
 }
 
 type CloseReason =
@@ -217,7 +220,7 @@ export class Client<
    * @param {Object} opts
    * @private
    */
-  _packet(packet: Packet | any[], opts: WriteOptions = {}): void {
+  _packet(packet: Packet | Packet[], opts: WriteOptions = {}): void {
     if (this.conn.readyState !== "open") {
       debug("ignoring packet write %j", packet);
       return;
@@ -228,6 +231,7 @@ export class Client<
     this.writeToEngine(encodedPackets, opts);
   }
 
+  // XXX: are callers always sending 1 packet? (if not , we will need to handle batch sending stuff)
   private writeToEngine(
     encodedPackets: Array<string | Buffer>,
     opts: WriteOptions

@@ -506,6 +506,7 @@ export class Socket<
    * @return self
    */
   public send(...args: EventParams<EmitEvents, "message">): this {
+    // XXX: what listens to this event?
     this.emit("message", ...args);
     return this;
   }
