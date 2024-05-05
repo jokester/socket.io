@@ -231,7 +231,6 @@ export class Client<
     this.writeToEngine(encodedPackets, opts);
   }
 
-  // XXX: are callers always sending 1 packet? (if not , we will need to handle batch sending stuff)
   private writeToEngine(
     encodedPackets: Array<string | Buffer>,
     opts: WriteOptions
