@@ -1,19 +1,35 @@
 import { EngineRequest, Transport } from "../transport";
 import debugModule from "debug";
+import type {EventEmitter} from 'node:events';
 import type { Packet, RawData } from "engine.io-parser";
 
 const debug = debugModule("engine:ws");
 
+/**
+ * WebSocket object in 'ws' package
+ * names started with _ are not in web-WebSocket standard
+ */
+export interface WsWebSocket extends EventEmitter {
+  send(
+    data: string | Buffer,
+    _opts?: unknown,
+    _callback?: (err?: Error) => void
+  ): void;
+  _sender?: any;
+  close(): void;
+}
 export class WebSocket extends Transport {
-  protected perMessageDeflate: any;
-  private socket: any;
+  perMessageDeflate: false | {
+    threshold: number;
+  };
+  private socket: WsWebSocket;
 
   /**
    * WebSocket transport
    *
    * @param {EngineRequest} req
    */
-  constructor(req: EngineRequest) {
+  constructor(req: {websocket: WsWebSocket}) {
     super(req);
     this.socket = req.websocket;
     this.socket.on("message", (data, isBinary) => {

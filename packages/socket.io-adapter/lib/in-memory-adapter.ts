@@ -43,6 +43,12 @@ interface SessionToPersist {
 
 export type Session = SessionToPersist & { missedPackets: unknown[][] };
 
+/**
+ * An adapter:
+ * 1. manages Rooms and Sockets in them: (`addAll`, `del`, `delAll`, `broadcast`, `sockets`, `socketRooms`)
+ * 2. keeps sockets
+ * 2. sends packets to Sockets: `addAll
+ */
 export class Adapter extends EventEmitter {
   public rooms: Map<Room, Set<SocketId>> = new Map();
   public sids: Map<SocketId, Set<Room>> = new Map();
@@ -53,7 +59,7 @@ export class Adapter extends EventEmitter {
    *
    * @param {Namespace} nsp
    */
-  constructor(readonly nsp: any) {
+  constructor(readonly nsp: import('socket.io/lib').Namespace) {
     super();
     this.encoder = nsp.server.encoder;
   }
@@ -330,7 +336,7 @@ export class Adapter extends EventEmitter {
     });
   }
 
-  private apply(opts: BroadcastOptions, callback: (socket) => void): void {
+  private apply(opts: BroadcastOptions, callback: (socket: import('socket.io/lib').Socket) => void): void {
     const rooms = opts.rooms;
     const except = this.computeExceptSids(opts.except);
 

@@ -79,7 +79,7 @@ export abstract class Transport extends EventEmitter {
    *
    * @param {EngineRequest} req
    */
-  constructor(req: { _query: Record<string, string> }) {
+  constructor(req: TODO) {
     super();
     this.protocol = req._query.EIO === "4" ? 4 : 3; // 3rd revision by default
     this.parser = this.protocol === 4 ? parser_v4 : parser_v3;
