@@ -11,11 +11,14 @@ import type { Socket as RawSocket } from "engine.io";
 
 const debug = debugModule("socket.io:client");
 
+/**
+ * FIXME this can be imported from socket.io-parser ?
+ */
 interface WriteOptions {
-  compress?: boolean;
-  volatile?: boolean;
-  preEncoded?: boolean;
-  wsPreEncoded?: string;
+  compress?: boolean; // send to engine.io
+  volatile?: boolean; // handled within socket.io
+  preEncoded?: boolean; // handled within socket.io
+  wsPreEncoded?: string; // handled within socket.io
 }
 
 type CloseReason =
@@ -61,7 +64,7 @@ export class Client<
    */
   constructor(
     server: Server<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
-    conn: any
+    conn: RawSocket
   ) {
     this.server = server;
     this.conn = conn;
@@ -216,13 +219,13 @@ export class Client<
    * @param {Object} opts
    * @private
    */
-  _packet(packet: Packet | any[], opts: WriteOptions = {}): void {
+  _packet(packet: Packet | Packet[], opts: WriteOptions = {}): void {
     if (this.conn.readyState !== "open") {
       debug("ignoring packet write %j", packet);
       return;
     }
     const encodedPackets = opts.preEncoded
-      ? (packet as any[]) // previous versions of the adapter incorrectly used socket.packet() instead of writeToEngine()
+      ? (packet as Packet[]) // previous versions of the adapter incorrectly used socket.packet() instead of writeToEngine()
       : this.encoder.encode(packet as Packet);
     this.writeToEngine(encodedPackets, opts);
   }
@@ -250,7 +253,7 @@ export class Client<
    *
    * @private
    */
-  private ondata(data): void {
+  private ondata(data: unknown): void {
     // try/catch is needed for protocol violations (GH-1880)
     try {
       this.decoder.add(data);
