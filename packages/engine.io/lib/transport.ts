@@ -53,7 +53,7 @@ export abstract class Transport extends EventEmitter {
    * The parser to use (depends on the revision of the {@link Transport#protocol}.
    * @protected
    */
-  protected parser: any;
+  protected parser: typeof import('engine.io-parser/lib');
   /**
    * Whether the transport supports binary payloads (else it will be base64-encoded)
    * @protected
