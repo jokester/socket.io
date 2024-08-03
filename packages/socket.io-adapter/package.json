@@ -15,6 +15,9 @@
   ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    "types": "./lib/index.ts"
+  },
   "description": "default socket.io in-memory adapter",
   "dependencies": {
     "debug": "~4.3.4",

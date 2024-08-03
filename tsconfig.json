@@ -1,0 +1,16 @@
+{
+  "references": [
+    {
+      "path": "./packages/engine.io-parser/tsconfig.json"
+    },
+    {
+      "path": "./packages/engine.io/tsconfig.json"
+    },
+    {
+      "path": "./packages/socket.io-adapter/tsconfig.json"
+    },
+    {
+      "path": "./packages/socket.io/tsconfig.json"
+    }
+  ]
+}

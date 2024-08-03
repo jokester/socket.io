@@ -55,8 +55,8 @@
     "cors": "~2.8.5",
     "debug": "~4.3.2",
     "engine.io": "~6.5.2",
-    "socket.io-adapter": "~2.5.2",
-    "socket.io-parser": "~4.2.4"
+    "socket.io-adapter": "workspace:*",
+    "socket.io-parser": "workspace:*"
   },
   "contributors": [
     {
