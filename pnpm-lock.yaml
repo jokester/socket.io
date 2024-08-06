@@ -282,19 +282,19 @@ importers:
         specifier: ^4.3.6
         version: 4.3.6(supports-color@8.1.1)
       engine.io:
-        specifier: ~6.6.0
-        version: 6.6.0
+        specifier: workspace:*
+        version: link:../engine.io
       engine.io-parser:
-        specifier: ~5.2.3
-        version: 5.2.3
+        specifier: workspace:*
+        version: link:../engine.io-parser
 
   packages/socket.io-component-emitter: {}
 
   packages/socket.io-parser:
     dependencies:
       '@socket.io/component-emitter':
-        specifier: ~3.1.0
-        version: 3.1.2
+        specifier: workspace:*
+        version: link:../socket.io-component-emitter
       debug:
         specifier: ^4.3.6
         version: 4.3.6(supports-color@8.1.1)
@@ -2041,10 +2041,6 @@ packages:
 
   engine.io@6.5.5:
     resolution: {integrity: sha512-C5Pn8Wk+1vKBoHghJODM63yk8MvrO9EWZUfkAt5HAqIgPE4/8FF0PEGHXtEd40l223+cE5ABWuPzm38PHFXfMA==}
-    engines: {node: '>=10.2.0'}
-
-  engine.io@6.6.0:
-    resolution: {integrity: sha512-+ky8JKEyy2WqFkzwp8ntm8EFZAW/o5YfTi2pQEoByAAFCtXiXhbBNpBi1HqLGPCjPHCqyKMlyLvc7GMNM8/1/w==}
     engines: {node: '>=10.2.0'}
 
   enhanced-resolve@5.17.1:
@@ -6513,23 +6509,6 @@ snapshots:
   engine.io-parser@5.2.3: {}
 
   engine.io@6.5.5:
-    dependencies:
-      '@types/cookie': 0.4.1
-      '@types/cors': 2.8.17
-      '@types/node': 20.14.14
-      accepts: 1.3.8
-      base64id: 2.0.0
-      cookie: 0.4.2
-      cors: 2.8.5
-      debug: 4.3.6(supports-color@8.1.1)
-      engine.io-parser: 5.2.3
-      ws: 8.17.1
-    transitivePeerDependencies:
-      - bufferutil
-      - supports-color
-      - utf-8-validate
-
-  engine.io@6.6.0:
     dependencies:
       '@types/cookie': 0.4.1
       '@types/cors': 2.8.17

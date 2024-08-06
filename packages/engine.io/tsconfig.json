@@ -7,8 +7,5 @@
   },
   "include": [
     "./lib/**/*"
-  ],
-  "references": [{
-    "path": "../engine.io-parser/tsconfig.json"
-  }]
+  ]
 }

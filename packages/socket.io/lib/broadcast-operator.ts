@@ -1,6 +1,6 @@
 import type { BroadcastFlags, Room, SocketId } from "socket.io-adapter";
 import { Handshake, RESERVED_EVENTS, Socket } from "./socket";
-import { PacketType } from "socket.io-parser/lib";
+import { PacketType } from "socket.io-parser";
 import type { Adapter } from "socket.io-adapter";
 import type {
   EventParams,
