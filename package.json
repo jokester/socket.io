@@ -62,11 +62,17 @@
     "ts-loader": "^9.5.1",
     "ts-node": "^10.9.2",
     "tsd": "^0.31.1",
-    "typescript": "^5.5.3",
+    "typescript": "^5.5.4",
     "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.30.0",
-    "wdio-geckodriver-service": "^5.0.2"
+    "wdio-geckodriver-service": "^5.0.2",
+    "esbuild": "0.23.1",
+    "wrangler":"^3.74.0"
   },
-  "dependencies": {
-    "esbuild": "^0.23.1"
+  "pnpm": {
+    "overrides": {
+      "typescript": "^5.5.4",
+      "esbuild": "0.23.1",
+      "wrangler":"^3.74.0"
+    }
   }
 }

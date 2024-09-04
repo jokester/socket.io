@@ -14,15 +14,16 @@
   "license": "BSD",
   "dependencies": {
     "@jokester/ts-commonutil": "^0.6.0",
-    "debug": "^4.3.4",
+    "debug": "^4.3.6",
     "engine.io": "workspace:*",
-    "hono": "^4.2.2",
+    "hono": "^4.5.11",
     "socket.io": "workspace:*",
     "superjson": "^2.2.1"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20240405.0",
+    "@cloudflare/workers-types": "^4.20240903.0",
     "@types/node": "20",
+    "esbuild": "*",
     "typescript": "*",
     "wrangler": "*"
   }

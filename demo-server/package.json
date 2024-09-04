@@ -22,13 +22,9 @@
     "socket.io": "^4.7.5"
   },
   "devDependencies": {
-    "@types/debug": "^4.1.12",
     "@types/node": "*",
     "@types/serve-handler": "^6.1.4",
     "esbuild": "*",
-    "gts": "*",
-    "nodemon": "^3.0.3",
-    "ts-node": "^10.9.2",
     "typescript": "*",
     "wrangler": "*"
   }
