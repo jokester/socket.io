@@ -226,7 +226,7 @@ export class Client<
       return;
     }
     const encodedPackets = opts.preEncoded
-      ? (packet as any[]) // previous versions of the adapter incorrectly used socket.packet() instead of writeToEngine()
+      ? (packet as Packet[]) // previous versions of the adapter incorrectly used socket.packet() instead of writeToEngine()
       : this.encoder.encode(packet as Packet);
     this.writeToEngine(encodedPackets, opts);
   }

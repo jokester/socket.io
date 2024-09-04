@@ -213,7 +213,6 @@ export class Server<
    * @private
    */
   _connectTimeout: number;
-  private httpServer: TServerInstance;
   private _corsMiddleware: (
     req: http.IncomingMessage,
     res: http.ServerResponse,
@@ -674,7 +673,7 @@ export class Server<
   /**
    * Called with each incoming transport connection.
    *
-   * @param conn engine.io socket
+   * @param {engine.Socket} conn
    * @return self
    * @private
    */
