@@ -6,9 +6,12 @@
   "main": "./build/engine.io.js",
   "types": "./build/engine.io.d.ts",
   "exports": {
-    "types": "./build/engine.io.d.ts",
-    "import": "./wrapper.mjs",
-    "require": "./build/engine.io.js"
+    ".": {
+      "development": "./lib/engine.io.ts",
+      "types": "./build/engine.io.d.ts",
+      "import": "./wrapper.mjs",
+      "require": "./build/engine.io.js"
+    }
   },
   "author": "Guillermo Rauch <guillermo@learnboost.com>",
   "contributors": [
@@ -34,12 +37,13 @@
     "@types/cookie": "^0.4.1",
     "@types/cors": "^2.8.12",
     "@types/node": ">=10.0.0",
+    "@types/ws": "^8.0.0",
     "accepts": "~1.3.4",
     "base64id": "2.0.0",
     "cookie": "~0.4.1",
     "cors": "~2.8.5",
     "debug": "~4.3.1",
-    "engine.io-parser": "~5.2.1",
+    "engine.io-parser": "workspace:~",
     "ws": "~8.17.1"
   },
   "scripts": {
