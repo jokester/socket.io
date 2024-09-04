@@ -13,20 +13,16 @@
   "author": "",
   "license": "BSD",
   "dependencies": {
-    "@jokester/sio-server": "workspace:*",
     "@jokester/ts-commonutil": "^0.6.0",
     "debug": "^4.3.4",
-    "engine.io": "*",
+    "engine.io": "workspace:*",
     "hono": "^4.2.2",
-    "socket.io": "*",
+    "socket.io": "workspace:*",
     "superjson": "^2.2.1"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240405.0",
-    "@types/debug": "^4.1.12",
-    "@types/node": "*",
-    "gts": "*",
-    "ts-node": "^10.9.2",
+    "@types/node": "20",
     "typescript": "*",
     "wrangler": "*"
   }

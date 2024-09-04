@@ -8,7 +8,6 @@ import type * as eio from 'engine.io/lib/engine.io';
 import {Server as BaseSioServer} from 'socket.io/lib/index';
 import {Client as SioClient} from 'socket.io/lib/client';
 import {WorkerBindings} from './workerApp';
-import * as limbV1 from '@jokester/sio-server/namespace-v1';
 import {EngineActor} from './EngineActor';
 
 const debugLogger = createDebugLogger('sio-worker:SioActor');
@@ -180,6 +179,7 @@ export class SioActor implements CF.DurableObject {
 
   sioServer = lazy(() => {
     // TODO: support clustering
+    // TODO: make this package a library
     const s = new SioServer(this.env);
     s.of(limbV1.parentNamespace).on('connection', limbV1.onV1Connection);
     return s;
