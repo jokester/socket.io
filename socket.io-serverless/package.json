@@ -1,0 +1,33 @@
+{
+  "name": "@jokester/socket.io-serverless",
+  "version": "0.0.1",
+  "description": "engine.io protocol with CF worker",
+  "main": "main.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "esb": "DEBUG='sio-worker:*' node build.mjs",
+    "build": "wrangler deploy --outdir=./build --dry-run",
+    "fix": "gts fix"
+  },
+  "author": "",
+  "license": "BSD",
+  "dependencies": {
+    "@jokester/sio-server": "workspace:*",
+    "@jokester/ts-commonutil": "^0.6.0",
+    "debug": "^4.3.4",
+    "engine.io": "*",
+    "hono": "^4.2.2",
+    "socket.io": "*",
+    "superjson": "^2.2.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240405.0",
+    "@types/debug": "^4.1.12",
+    "@types/node": "*",
+    "gts": "*",
+    "ts-node": "^10.9.2",
+    "typescript": "*",
+    "wrangler": "*"
+  }
+}

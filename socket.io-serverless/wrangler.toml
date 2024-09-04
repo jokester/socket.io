@@ -1,0 +1,21 @@
+# see https://developers.cloudflare.com/workers/wrangler/configuration#importing-assets-within-a-worker
+
+name = "sio-worker"
+main = "src/index.ts"
+compatibility_date = "2024-04-01"
+node_compat = true
+
+workers_dev = false
+[dev]
+port = 18787
+
+[durable_objects]
+bindings = [
+  { name = "engineActor", class_name = "EngineActor" },
+  { name = "sioActor", class_name = "SioActor" },
+#  { name = "nsActor", class_name = "SocketActor" },
+]
+
+[[migrations]]
+tag = "v1" # Should be unique for each entry
+new_classes = ["EngineActor", "SioActor"]

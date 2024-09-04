@@ -1,0 +1,7 @@
+name = "sio-worker-demo"
+compatibility_date = "2024-04-01"
+
+main = "./demo-assets-worker.ts"
+
+[site]
+bucket = "../build/public"
