@@ -1,10 +1,8 @@
-import http from 'node:http';
-import * as sio from 'socket.io/lib';
-import path from 'node:path';
+import * as http from 'http';
+import * as sio from 'socket.io';
 import debug from 'debug';
 
-import * as v1 from './namespace-v1';
-import * as fs from 'fs';
+import * as forwardEverything from '../app/forward-everything';
 import {closeSioSockets, prepareTcpConnect, waitSignal} from './utils';
 
 const logger = debug('limb:server');
@@ -15,24 +13,8 @@ interface ServerGroup {
   closeTcpSockets(): void;
 }
 
-function findAssetsDir(): string | null {
-  const publicAssetsDir = path.join(__dirname, 'public');
-  try {
-    const stat = fs.statSync(publicAssetsDir);
-    if (stat.isDirectory()) {
-      return publicAssetsDir;
-    }
-  } catch (ignored) {}
-  return null;
-}
-
 function initServer(): ServerGroup {
   const httpServer = http.createServer();
-  const publicAssetsDir = findAssetsDir();
-
-  if (publicAssetsDir) {
-    logger('static assets hosting enabled', publicAssetsDir);
-  }
 
   httpServer.on('request', (req, res) => {
     logger('request', req.url);
@@ -61,8 +43,8 @@ Please find more information at https://github.com/jokester/limb .
   });
 
   ioServer
-    .of(v1.parentNamespace)
-    .on('connection', socket => v1.onV1Connection(socket));
+    .of(forwardEverything.parentNamespace)
+    .on('connection', socket => forwardEverything.onConnection(socket));
 
   return {
     http: httpServer,
@@ -84,9 +66,10 @@ function waitServerEnd(serverLike: http.Server | sio.Server): Promise<void> {
 }
 
 async function main(): Promise<0 | 1> {
+  const port = ~~(process.env.PORT ?? 18787);
   const server = initServer();
-  server.http.listen(3000);
-  console.info('server listening on 3000');
+  server.http.listen(port);
+  console.info(`server listening on ${port}`);
 
   {
     const shutdownCause = await Promise.race([

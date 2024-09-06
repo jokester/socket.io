@@ -8,7 +8,7 @@ import debugModule from "debug";
 import { serialize } from "cookie";
 import {
   type Server as WsServer,
-  Server as DEFAULT_WS_ENGINE,
+  WebSocketServer as DEFAULT_WS_ENGINE,
   type PerMessageDeflateOptions,
   type WebSocket as WsWebSocket,
 } from "ws";

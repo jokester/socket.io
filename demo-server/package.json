@@ -7,6 +7,7 @@
     "lint": "gts lint",
     "clean": "gts clean",
     "dev": "DEBUG=limb:*,-socket.io:* nodemon --exec ts-node-transpile-only main-node.ts",
+    "dev:node": "DEBUG=limb:*,-socket.io:* tsx watch src/node/main.ts",
     "build": "node build.mjs",
     "deploy:cf": "wrangler deploy",
     "fix": "gts fix"

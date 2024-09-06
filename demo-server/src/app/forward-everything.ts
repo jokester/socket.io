@@ -3,9 +3,13 @@ import type * as sio from 'socket.io/lib';
 
 export const parentNamespace = /^\/v1\/[-\w:.]+$/;
 
-const logger = debug('limb:server:v1');
+const logger = debug('limb:server:demo-app');
 
-export function onV1Connection(socket: sio.Socket) {
+/**
+ * An example socket.io app , forwarding all messages to all clients.
+ * @param socket
+ */
+export function onConnection(socket: sio.Socket) {
   const namespace = socket.nsp;
   logger('connection', namespace.name, socket.id);
 
