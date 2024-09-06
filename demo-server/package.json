@@ -22,6 +22,7 @@
   "devDependencies": {
     "@types/node": "*",
     "esbuild": "*",
+    "tsx": "*",
     "typescript": "*",
     "wrangler": "*"
   }

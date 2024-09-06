@@ -37,31 +37,12 @@ function initServer(): ServerGroup {
   httpServer.on('request', (req, res) => {
     logger('request', req.url);
 
-    if (publicAssetsDir) {
-      /**
-       * can be used to serve an SPA or static site
-       * e.g. the demo site of limb
-       * the dir should have a /index.html and other static assets
-       */
-      serveHandler(req, res, {
-        public: publicAssetsDir,
-        // NOTE static files take precedence over this
-        rewrites: [{source: '/*', destination: '/index.html'}],
-        cleanUrls: true,
-        directoryListing: false,
-        trailingSlash: false,
-        etag: true,
-      }).catch(e => {
-        console.error('serveHandler: error handling request', e);
-      });
-    } else {
       res.writeHead(200, {'content-type': 'text/plain'}).end(
         `
 Demo server of sio-serverless
 Please find more information at https://github.com/jokester/limb .
         `.trim()
       );
-    }
   });
 
   const ioServer = new sio.Server(httpServer, {
@@ -102,7 +83,7 @@ function waitServerEnd(serverLike: http.Server | sio.Server): Promise<void> {
   });
 }
 
-async function mainNode(): Promise<0 | 1> {
+async function main(): Promise<0 | 1> {
   const server = initServer();
   server.http.listen(3000);
   console.info('server listening on 3000');
@@ -145,7 +126,7 @@ async function mainNode(): Promise<0 | 1> {
 }
 
 if (require.main === module) {
-  mainNode().then(
+  main().then(
     exitCode => process.exit(exitCode),
     e => {
       console.error('unexpected error', e);
