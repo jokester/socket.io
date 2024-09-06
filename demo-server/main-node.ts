@@ -3,8 +3,6 @@ import * as sio from 'socket.io/lib';
 import path from 'node:path';
 import debug from 'debug';
 
-import serveHandler from 'serve-handler';
-import {onV2Connection} from './namespace-v2';
 import * as v1 from './namespace-v1';
 import * as fs from 'fs';
 import {closeSioSockets, prepareTcpConnect, waitSignal} from './utils';
@@ -59,7 +57,7 @@ function initServer(): ServerGroup {
     } else {
       res.writeHead(200, {'content-type': 'text/plain'}).end(
         `
-Limb server is running.
+Demo server of sio-serverless
 Please find more information at https://github.com/jokester/limb .
         `.trim()
       );
@@ -85,10 +83,6 @@ Please find more information at https://github.com/jokester/limb .
     .of(v1.parentNamespace)
     .on('connection', socket => v1.onV1Connection(socket));
 
-  ioServer
-    .of(/^\/v2\/[-\w:.]+$/)
-    .on('connection', socket => onV2Connection(socket.nsp, socket));
-
   return {
     http: httpServer,
     io: ioServer,
@@ -108,7 +102,7 @@ function waitServerEnd(serverLike: http.Server | sio.Server): Promise<void> {
   });
 }
 
-async function main(): Promise<0 | 1> {
+async function mainNode(): Promise<0 | 1> {
   const server = initServer();
   server.http.listen(3000);
   console.info('server listening on 3000');
@@ -151,7 +145,7 @@ async function main(): Promise<0 | 1> {
 }
 
 if (require.main === module) {
-  main().then(
+  mainNode().then(
     exitCode => process.exit(exitCode),
     e => {
       console.error('unexpected error', e);

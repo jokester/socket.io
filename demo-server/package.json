@@ -1,29 +1,26 @@
 {
-  "name": "@jokester/sio-server",
+  "name": "@jokester/sio-serverless-demo-server",
   "version": "0.0.1",
   "description": "a simple socket.io server",
-  "main": "main.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "gts lint",
     "clean": "gts clean",
-    "dev": "DEBUG=limb:*,-socket.io:* nodemon --exec ts-node-transpile-only main.ts",
+    "dev": "DEBUG=limb:*,-socket.io:* nodemon --exec ts-node-transpile-only main-node.ts",
     "build": "node build.mjs",
     "deploy:cf": "wrangler deploy",
     "fix": "gts fix"
   },
-  "author": "",
+  "author": "Wang Guan <momocraft@gmail.com>",
   "license": "BSD",
   "dependencies": {
     "@jokester/ts-commonutil": "^0.6.0",
     "debug": "^4.3.4",
     "hono": "^4.2.2",
-    "serve-handler": "^6.1.5",
-    "socket.io": "^4.7.5"
+    "socket.io": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "*",
-    "@types/serve-handler": "^6.1.4",
     "esbuild": "*",
     "typescript": "*",
     "wrangler": "*"
