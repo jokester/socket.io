@@ -2,9 +2,15 @@ import esbuild from 'esbuild';
 import path from 'path';
 import fs from 'fs';
 
+const ___file = new URL(import.meta.url).pathname;
+
+const ___dirname = path.dirname(___file);
+const packagesDir = path.join(___dirname, '../packages');
+const mocksDir = path.join(___dirname, '../packages');
+
 async function getPkgsDir(pkgName) {
   if (pkgName.includes('socket.io') || pkgName.includes('engine.io')) {
-    const localPath = path.join(path.resolve('../packages'), pkgName)
+    const localPath = path.join(packagesDir, pkgName)
     return localPath
   }
   throw new Error(`Could not find package directory for ${pkgName}`)
