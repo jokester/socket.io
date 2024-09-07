@@ -96,13 +96,27 @@ const nodeBuildContext = {
   plugins: [rewireSocketIoPackages],
 }
 
-const cfBuildContext = {
+/**
+ * @type {esbuild.BuildOptions}
+ */
 
+const cfBuildContext = {
+  entryPoints: ['src/cf/main.ts'],
+  bundle: true,
+  platform: 'neutral',
+  metafile: true,
+  outfile: 'dist/cf-main.js',
+  plugins: [rewireSocketIoPackages]
 }
 
-async function buildMain() {
-  const nodeBuild = await esbuild.build(nodeBuildContext);
-  debugLogger('build finish', nodeBuild);
+async function buildNode() {
+  const buildResult = await esbuild.build(nodeBuildContext);
+  debugLogger('build finish', buildResult);
+}
+
+async function buildCf() {
+  const buildResult = await esbuild.build(cfBuildContext);
+  debugLogger('build finish', buildResult);
 }
 
 async function watchMain() {
@@ -115,7 +129,7 @@ async function main() {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  buildMain().catch(e => {
+  buildCf().catch(e => {
     console.error(e);
     process.exit(1);
   });

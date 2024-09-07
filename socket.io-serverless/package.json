@@ -2,7 +2,6 @@
   "name": "@jokester/socket.io-serverless",
   "version": "0.0.1",
   "description": "engine.io protocol with CF worker",
-  "main": "main.ts",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
@@ -14,7 +13,7 @@
   "license": "BSD",
   "dependencies": {
     "@jokester/ts-commonutil": "^0.6.0",
-    "debug": "^4.3.6",
+    "debug": "^4.3.7",
     "engine.io": "workspace:*",
     "hono": "^4.5.11",
     "socket.io": "workspace:*",

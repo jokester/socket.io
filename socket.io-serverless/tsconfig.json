@@ -2,7 +2,8 @@
   "compilerOptions": {
     "skipLibCheck": true,
     "target": "esnext",
-    "types": ["@cloudflare/worker-types"],
+    "types": ["@cloudflare/worker-types", "@types/node"],
+    "moduleResolution": "node16",
     "lib": ["es2022"]
   }
 }

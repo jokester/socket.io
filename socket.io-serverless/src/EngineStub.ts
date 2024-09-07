@@ -3,7 +3,7 @@ import {
   WebSocket as _EioWebSocket,
 } from 'engine.io/lib/transports/websocket';
 import {Socket as _EioSocket} from 'engine.io/lib/socket';
-import type * as eio from 'engine.io/lib/engine.io';
+import type * as eio from 'engine.io';
 import type * as CF from '@cloudflare/workers-types';
 import {EventEmitter} from 'events';
 import {createDebugLogger} from './utils/logger';
