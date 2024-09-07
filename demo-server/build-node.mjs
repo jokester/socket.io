@@ -2,13 +2,6 @@ import esbuild from 'esbuild';
 import path from 'path';
 import fs from 'fs';
 
-// Configurable import resolutions
-const alias = {
-  '@components': path.resolve(process.cwd(), 'src/components'),
-  '@utils': path.resolve(process.cwd(), 'src/utils'),
-  // Add more aliases as needed
-};
-
 async function getPkgsDir(pkgName) {
   if (pkgName.includes('socket.io') || pkgName.includes('engine.io')) {
     const localPath = path.join(path.resolve('../packages'), pkgName)
