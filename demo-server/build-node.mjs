@@ -1,16 +1,21 @@
 import esbuild from 'esbuild';
 import path from 'path';
 import fs from 'fs';
+import debug from 'debug'
+debug.inspectOpts.depth = 10;
+
+const debugLogger = debug('demo-server:build');
 
 const ___file = new URL(import.meta.url).pathname;
 
 const ___dirname = path.dirname(___file);
-const packagesDir = path.join(___dirname, '../packages');
-const mocksDir = path.join(___dirname, '../packages');
+const sioPackagesRoot = path.join(___dirname, '../packages');
+const sioServerlessRoot = path.join(___dirname, '../socket.io-serverless');
+const mocksRoot = path.join(sioServerlessRoot, 'mocks');
 
 async function getLocalSioDir(pkgName) {
   if (pkgName.includes('socket.io') || pkgName.includes('engine.io')) {
-    return path.join(packagesDir, pkgName)
+    return path.join(sioPackagesRoot, pkgName)
   }
   throw new Error(`Could not find package directory for ${pkgName}`)
 }
@@ -78,8 +83,10 @@ if (!fs.existsSync(outputDir)) {
   fs.mkdirSync(outputDir);
 }
 
-// Build and watch
-esbuild.build({
+/**
+ * @type {esbuild.BuildOptions}
+ */
+const nodeBuildContext = {
   entryPoints: ['src/node/main.ts'], // Change this to your entrypoint file
   bundle: true,
   platform: 'node',
@@ -87,10 +94,29 @@ esbuild.build({
   metafile: true,
   outfile: 'dist/node-main.js',
   plugins: [rewireSocketIoPackages],
-}).then(result => {
-  console.log('build finish', result);
-}).catch((e) => {
-  console.error('build fail', e)
+}
 
-  process.exit(1);
-});
+const cfBuildContext = {
+
+}
+
+async function buildMain() {
+  const nodeBuild = await esbuild.build(nodeBuildContext);
+  debugLogger('build finish', nodeBuild);
+}
+
+async function watchMain() {
+
+}
+
+async function main() {
+  b
+
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  buildMain().catch(e => {
+    console.error(e);
+    process.exit(1);
+  });
+}
