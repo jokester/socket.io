@@ -8,10 +8,9 @@ const ___dirname = path.dirname(___file);
 const packagesDir = path.join(___dirname, '../packages');
 const mocksDir = path.join(___dirname, '../packages');
 
-async function getPkgsDir(pkgName) {
+async function getLocalSioDir(pkgName) {
   if (pkgName.includes('socket.io') || pkgName.includes('engine.io')) {
-    const localPath = path.join(packagesDir, pkgName)
-    return localPath
+    return path.join(packagesDir, pkgName)
   }
   throw new Error(`Could not find package directory for ${pkgName}`)
 }
@@ -42,46 +41,36 @@ async function findPackageDir2(pkgName) {
 }
 
 /**
- * rewire imports to bundle ts file
+ * rewire sockket.io imports to bundle for Node.js
  * @type {esbuild.Plugin}
  */
-const resolveAliasPlugin = {
-  name: 'resolve-alias',
+const rewireSocketIoPackages = {
+  name: 'rewireSocketIoPackages',
   setup(build) {
     build.onResolve({filter: /./}, async args => {
-      if (args.path.includes('socket.io') || args.path.includes('engine.io')) {
-        console.log('onResolve', args);
-      }
       switch (args.path) {
         case 'engine.io-parser':
         case 'socket.io':
         case 'socket.io-parser':
         case 'socket.io-adapter': {
-          const rewired = path.join(await getPkgsDir(args.path), 'lib/index.ts');
-          console.log('rewired', args.path, rewired);
           return {
-            path: rewired
+            path: path.join(await getLocalSioDir(args.path), 'lib/index.ts')
           }
         }
         case 'engine.io': {
-          const rewired  =path.join(await getPkgsDir(args.path), 'lib/engine.io.ts');
-          console.log('rewired', args.path, rewired);
           return {
-            path: rewired
+            path: path.join(await getLocalSioDir(args.path), 'lib/engine.io.ts')
           }
         }
       }
       return null
     })
-    0 && build.onResolve({ filter: /^@components|@utils/ }, args => {
-      const aliasKey = Object.keys(alias).find(key => args.path.startsWith(key));
-      if (aliasKey) {
-        return { path: args.path.replace(aliasKey, alias[aliasKey]) };
-      }
-      return { path: args.path };
-    });
   }
 };
+
+const rewireSocketIoServerlessImports = {
+
+}
 
 // Ensure the output directory exists
 const outputDir = path.resolve(process.cwd(), 'dist');
@@ -97,7 +86,7 @@ esbuild.build({
   target: 'node18',
   metafile: true,
   outfile: 'dist/node-main.js',
-  plugins: [resolveAliasPlugin],
+  plugins: [rewireSocketIoPackages],
 }).then(result => {
   console.log('build finish', result);
 }).catch((e) => {

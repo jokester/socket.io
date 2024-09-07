@@ -1,3 +1,11 @@
+# socket.io-serverless
+
+Custom build of [socket.io](https://socket.io/) to run in serverless environment.
+
+- Cloudflare Workers (+ Durable Objects)
+
+----
+
 # socket.io
 
 [![Latest NPM version](https://img.shields.io/npm/v/socket.io.svg)](https://www.npmjs.com/package/socket.io)
