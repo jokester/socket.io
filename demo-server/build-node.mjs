@@ -46,35 +46,84 @@ async function findPackageDir2(pkgName) {
 }
 
 /**
- * rewire sockket.io imports to bundle for Node.js
+ * rewire import of socket.io files, to bypass export map and import TS directly
  * @type {esbuild.Plugin}
  */
-const rewireSocketIoPackages = {
+const rewireSocketIoImports = {
   name: 'rewireSocketIoPackages',
   setup(build) {
+    const packageImportMap = {
+      'socket.io': path.join(sioPackagesRoot, 'socket.io/lib/index.ts'),
+      'engine.io': path.join(sioPackagesRoot, 'engine.io/lib/engine.io.ts'),
+      'engine.io-parser': path.join(sioPackagesRoot, 'engine.io-parser/lib/index.ts'),
+      'socket.io-adapter': path.join(sioPackagesRoot, 'socket.io-adapter/lib/index.ts'),
+      'socket.io-parser': path.join(sioPackagesRoot, 'socket.io-parser/lib/index.ts'),
+      '@socket.io/component-emitter': path.join(sioPackagesRoot, 'socket.io-component-emitter/lib/esm/index.js')
+    }
     build.onResolve({filter: /./}, async args => {
-      switch (args.path) {
-        case 'engine.io-parser':
-        case 'socket.io':
-        case 'socket.io-parser':
-        case 'socket.io-adapter': {
-          return {
-            path: path.join(await getLocalSioDir(args.path), 'lib/index.ts')
-          }
+      const resolvedPath = packageImportMap[args.path]
+      if (resolvedPath) {
+        return {
+          path: resolvedPath
         }
-        case 'engine.io': {
+      }
+    })
+
+    build.onResolve({filter: /./}, async args => {
+      /**
+       * rewire import of in-package file
+       */
+      for (const pkg of ['socket.io', 'engine.io']) {
+        const argsSegments = args.path.split('/')
+        if (argsSegments.length > 1 && argsSegments[0] === pkg) {
+          let basename = argsSegments.pop()
+          if (!['.ts', '.js'].some(ext => basename.endsWith(ext))) {
+            basename += '.ts'
+          }
+          const fsPath = path.join(await getLocalSioDir(pkg), ...argsSegments.slice(1), basename)
           return {
-            path: path.join(await getLocalSioDir(args.path), 'lib/engine.io.ts')
+            path: fsPath
           }
         }
       }
-      return null
     })
   }
 };
 
-const rewireSocketIoServerlessImports = {
+/**
+ * @type {esbuild.Plugin}
+ */
+const injectSocketIoServerlessMocks = {
+  name: 'injectSocketIoServerlessMocks',
+  setup(build) {
 
+    const mockMap = {
+      'debug': path.join(mocksRoot, 'debug/index.js'),
+      'ws': path.join(mocksRoot, 'ws/index.js'),
+      'path': path.join(mocksRoot, 'empty.js'),
+      'fs': path.join(mocksRoot, 'empty.js'),
+      'zlib': path.join(mocksRoot, 'empty.js'),
+      'crypto': path.join(mocksRoot, 'empty.js'),
+      'events': path.join(mocksRoot, 'empty.js'),
+      'https': path.join(mocksRoot, 'empty.js'),
+      'http': path.join(mocksRoot, 'empty.js'),
+      'tls': path.join(mocksRoot, 'empty.js'),
+      'url': path.join(mocksRoot, 'empty.js'),
+      'querystring': path.join(mocksRoot, 'empty.js'),
+      'base64id': path.join(mocksRoot, 'empty.js'),
+      'cors': path.join(mocksRoot, 'empty.js'),
+      'net': path.join(mocksRoot, 'empty.js'),
+      'timers': path.join(mocksRoot, 'empty.js'),
+      'stream': path.join(mocksRoot, 'empty.js'),
+    }
+    build.onResolve({filter: /./}, async args => {
+      if (args.path in mockMap) {
+        return {
+          path: mockMap[args.path]
+        }
+      }
+    })
+  }
 }
 
 // Ensure the output directory exists
@@ -93,7 +142,7 @@ const nodeBuildContext = {
   target: 'node18',
   metafile: true,
   outfile: 'dist/node-main.js',
-  plugins: [rewireSocketIoPackages],
+  plugins: [rewireSocketIoImports],
 }
 
 /**
@@ -106,30 +155,49 @@ const cfBuildContext = {
   platform: 'neutral',
   metafile: true,
   outfile: 'dist/cf-main.js',
-  plugins: [rewireSocketIoPackages]
+  plugins: [rewireSocketIoImports, injectSocketIoServerlessMocks]
 }
 
 async function buildNode() {
   const buildResult = await esbuild.build(nodeBuildContext);
   debugLogger('build finish', buildResult);
+  return buildResult
 }
 
 async function buildCf() {
   const buildResult = await esbuild.build(cfBuildContext);
   debugLogger('build finish', buildResult);
+  return buildResult
 }
 
 async function watchMain() {
 
 }
 
+async function reportBuildResult(buildResult) {
+  const {metafile} = buildResult;
+  const {outputs} = metafile;
+  for(const [inputFile, inputInfo] of Object.entries(metafile.inputs)) {
+    const {imports, bytes} = inputInfo;
+    for(const imp of imports) {
+      if (imp.path.includes('node_modules/hono/')) {
+        continue
+      }
+      console.log(imp.kind, inputFile, imp.original, imp.path)
+    }
+  }
+  for (const [outputFile, outputInfo] of Object.entries(outputs)) {
+    const {bytes, imports, exports} = outputInfo;
+    console.log('output', outputFile, {bytes, imports, exports});
+  }
+}
+
 async function main() {
-  b
 
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  buildCf().catch(e => {
+  buildCf().then(reportBuildResult).catch(e => {
     console.error(e);
     process.exit(1);
   });

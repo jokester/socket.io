@@ -280,6 +280,9 @@ importers:
 
   demo-server:
     dependencies:
+      '@jokester/socket.io-serverless':
+        specifier: workspace:^
+        version: link:../socket.io-serverless
       '@jokester/ts-commonutil':
         specifier: ^0.6.0
         version: 0.6.0
