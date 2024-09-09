@@ -7,7 +7,7 @@ import {EventEmitter} from 'events';
 import type * as eio from 'engine.io';
 import {Server as BaseSioServer} from 'socket.io';
 import {Client as SioClient} from 'socket.io/lib/client';
-import {WorkerBindings} from './workerApp';
+import type {WorkerBindings} from './workerApp';
 import {EngineActor} from './EngineActor';
 
 const debugLogger = createDebugLogger('sio-worker:SioActor');
@@ -115,7 +115,6 @@ class SioServer extends BaseSioServer implements Methods {
     const socket = this.getDistantSocket(socketAddr, true)!;
 
     const client = new SioClient(this, socket as unknown as eio.Socket);
-    // @ts-expect-error
     client.writeToEngine = (encodedPackets, opts) => {
       debugLogger('writeToEngine(): sendPackets()', encodedPackets, opts);
       EngineActor.send(

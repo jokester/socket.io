@@ -1,5 +1,5 @@
-import type net from 'node:net';
-import type http from 'node:http';
+import type * as net from 'node:net';
+import type * as http from 'node:http';
 import debug from 'debug';
 import sio from 'socket.io';
 

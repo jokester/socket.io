@@ -2,7 +2,7 @@
 
 name = "sio-worker"
 main = "dist/cf-main.js"
-compatibility_date = "2024-09-01"
+compatibility_date = "2024-08-21"
 node_compat = true
 
 workers_dev = false

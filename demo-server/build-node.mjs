@@ -91,9 +91,10 @@ const rewireSocketIoImports = {
 };
 
 /**
+ * rewire when building for serverless environment
  * @type {esbuild.Plugin}
  */
-const injectSocketIoServerlessMocks = {
+const rewireServerlessImports = {
   name: 'injectSocketIoServerlessMocks',
   setup(build) {
 
@@ -155,7 +156,7 @@ const cfBuildContext = {
   platform: 'neutral',
   metafile: true,
   outfile: 'dist/cf-main.js',
-  plugins: [rewireSocketIoImports, injectSocketIoServerlessMocks]
+  plugins: [rewireSocketIoImports, rewireServerlessImports]
 }
 
 async function buildNode() {

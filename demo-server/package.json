@@ -22,6 +22,7 @@
     "socket.io": "workspace:*"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240903.0",
     "@types/node": "*",
     "esbuild": "*",
     "tsx": "*",
