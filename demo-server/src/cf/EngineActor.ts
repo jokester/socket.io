@@ -3,9 +3,11 @@ import type {WorkerBindings} from "./workerApp";
 import {lazy} from "@jokester/socket.io-serverless/src/utils/lazy";
 import {Hono} from "hono";
 import {createDebugLogger} from "@jokester/socket.io-serverless/src/utils/logger";
+import type * as eio from 'engine.io'
 import {WebSocket as WebSocketTransport} from 'engine.io/lib/transports/websocket'
+import type {WebSocket as WsWebSocket} from 'ws'
 import {EventEmitter} from "events";
-import type {IncomingMessage} from "node:http";
+import type {IncomingMessage} from "http";
 import {EioSocket, EioWebSocket} from "@jokester/socket.io-serverless/src/EngineStub";
 
 const debugLogger = createDebugLogger('sio-worker:EngineActor');
@@ -108,7 +110,7 @@ function createStubEioServer() {
 
 function createStubRequest(
     websocket: WsWebSocket
-): IncomingMessage & {websocket: WsWebSocket} {
+): eio.EngineRequest {
     return {
         // @ts-expect-error
         _query: {
