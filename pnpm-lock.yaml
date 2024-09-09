@@ -302,6 +302,9 @@ importers:
       '@types/node':
         specifier: ^18
         version: 18.19.50
+      '@types/ws':
+        specifier: ^8
+        version: 8.5.12
       esbuild:
         specifier: 0.23.1
         version: 0.23.1

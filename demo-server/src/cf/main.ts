@@ -1,5 +1,5 @@
-import {workerApp} from '@jokester/socket.io-serverless/src/workerApp';
+import {workerApp} from './workerApp';
+export {EngineActor} from './EngineActor'
+export {SocketActor} from './SocketActor'
 
-export {EngineActor} from '@jokester/socket.io-serverless/src/EngineActor';
-export {SioActor} from '@jokester/socket.io-serverless/src/SioActor';
 export default workerApp;

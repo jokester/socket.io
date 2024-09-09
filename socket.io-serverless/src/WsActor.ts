@@ -70,7 +70,7 @@ export class WsActor implements CF.DurableObject {
     ws: CF.WebSocket,
     message: string | ArrayBuffer
   ): void | Promise<void> {
-    if (ws.readyState !== WebSocket.OPEN) {
+    if (ws.readyState !== self.WebSocket.OPEN) {
       return;
     }
     ws.send(

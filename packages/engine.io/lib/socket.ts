@@ -3,7 +3,7 @@ import debugModule from "debug";
 import type { IncomingMessage } from "http";
 import type { EngineRequest, Transport } from "./transport";
 import type { BaseServer } from "./server";
-import { setTimeout, clearTimeout } from "timers";
+import { setTimeout, clearTimeout, } from "timers";
 import type { Packet, PacketType, RawData } from "engine.io-parser";
 import {TransportName} from "./transports";
 
