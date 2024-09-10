@@ -81,8 +81,8 @@ export class CustomSocket extends EioSocket {
     static create(sid: string, transport: CustomTransport): CustomSocket {
         return new CustomSocket(sid, transport);
     }
-    constructor(sid: string, readonly _socket: EioWebSocket) {
-        super(sid, createStubEioServer(), _socket, null, 4);
+    constructor(sid: string, readonly transport: CustomTransport) {
+        super(sid, createStubEioServer(), transport, null, 4);
     }
     onCfClose() {
         (this.transport as CustomTransport)._socket.emit('close');
@@ -94,15 +94,6 @@ export class CustomSocket extends EioSocket {
     onCfError(msg: string, desc?: string) {
         (this.transport as EioWebSocket)._socket.emit('error', new Error(msg));
     }
-}
-
-function createEioSocket(
-    sid: string,
-    cfSocket: CF.WebSocket
-): EioSocket {
-    const stubRequest = createStubRequest(stubWebSocket);
-    const transport = new EioWebSocket(stubRequest);
-    return new EioSocket(sid, transport);
 }
 
 function createStubWebSocket(cfWebSocket: CF.WebSocket): WsWebSocket {
