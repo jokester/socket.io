@@ -53,10 +53,11 @@ function createHandler(actor: EngineActor, actorCtx: CF.DurableObjectState, env:
 
             const sid = socketId
             /**
-             * TODO remove tags
+             * TODO encode stuff into tags
              */
             const tags = [`sid:${sid}`];
             actorCtx.acceptWebSocket(serverSocket, tags);
+            // serverSocket.send('hello')
             const transport = CustomTransport.create(serverSocket);
             const eioSocket = CustomSocket.create(sid, transport);
 
@@ -84,6 +85,7 @@ export class CustomSocket extends EioSocket {
     constructor(sid: string, readonly transport: CustomTransport) {
         super(sid, createStubEioServer(), transport, null, 4);
     }
+    schedulePing() { /* noop to prevent 'window' NPE FIXME should work around better */ }
     onCfClose() {
         (this.transport as CustomTransport)._socket.emit('close');
     }
