@@ -3,7 +3,7 @@
     "skipLibCheck": true,
     "target": "esnext",
     "types": ["@cloudflare/worker-types", "@types/node"],
-    "moduleResolution": "node16",
+    "moduleResolution": "bundler",
     "lib": ["es2022"]
   }
 }

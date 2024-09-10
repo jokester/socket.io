@@ -303,6 +303,7 @@ export abstract class BaseServer extends EventEmitter {
     // sid check
     const sid = req._query.sid;
     if (sid) {
+      // fail: sid provided but incorrect
       if (!this.clients.hasOwnProperty(sid)) {
         debug('unknown sid "%s"', sid);
         return fn(Server.errors.UNKNOWN_SID, {
@@ -310,6 +311,7 @@ export abstract class BaseServer extends EventEmitter {
         });
       }
       const previousTransport = this.clients[sid as string].transport.name;
+      // fail: not upgrading && a different transport provided
       if (!upgrade && previousTransport !== transport) {
         debug("bad request: unexpected transport without upgrade");
         return fn(Server.errors.BAD_REQUEST, {

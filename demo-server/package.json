@@ -4,11 +4,11 @@
   "description": "a simple socket.io server",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "node build-node.mjs",
     "lint": "gts lint",
     "clean": "gts clean",
     "dev:cf": "DEBUG=limb:*,-socket.io:* wrangler dev",
     "dev:node": "DEBUG=limb:*,-socket.io:* tsx watch src/node/main.ts",
-    "build": "node build.mjs",
     "deploy:cf": "wrangler deploy",
     "fix": "gts fix"
   },
@@ -23,6 +23,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240903.0",
+    "@tsconfig/strictest": "^2.0.5",
     "@types/node": "*",
     "@types/ws": "^8",
     "esbuild": "*",

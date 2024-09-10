@@ -12,7 +12,7 @@ port = 18787
 [durable_objects]
 bindings = [
   { name = "engineActor", class_name = "EngineActor" },
-  { name = "sioActor", class_name = "SioActor" },
+  { name = "socketActor", class_name = "SocketActor" },
 #  { name = "nsActor", class_name = "SocketActor" },
 ]
 

@@ -156,7 +156,8 @@ const cfBuildContext = {
   platform: 'neutral',
   metafile: true,
   outfile: 'dist/cf-main.js',
-  plugins: [rewireSocketIoImports, rewireServerlessImports]
+  external: ['cloudflare:workers', 'events', 'debug', 'timers'],
+  plugins: [rewireSocketIoImports, ]
 }
 
 async function buildNode() {
@@ -165,17 +166,27 @@ async function buildNode() {
   return buildResult
 }
 
-async function buildCf() {
+async function buildCf(watch = false) {
+  if (watch) {
+    return watchCf()
+  }
   const buildResult = await esbuild.build(cfBuildContext);
   debugLogger('build finish', buildResult);
   return buildResult
 }
 
-async function watchMain() {
+async function watchCf() {
+  const ctx = await esbuild.context(cfBuildContext);
+
+  await ctx.watch({
+  })
 
 }
 
 async function reportBuildResult(buildResult) {
+  if (!buildResult) {
+    return
+  }
   const {metafile} = buildResult;
   const {outputs} = metafile;
   for(const [inputFile, inputInfo] of Object.entries(metafile.inputs)) {
@@ -198,7 +209,7 @@ async function main() {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  buildCf().then(reportBuildResult).catch(e => {
+  buildCf(process.argv.includes('--watch')).then(reportBuildResult).catch(e => {
     console.error(e);
     process.exit(1);
   });

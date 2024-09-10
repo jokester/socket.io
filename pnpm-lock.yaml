@@ -299,6 +299,9 @@ importers:
       '@cloudflare/workers-types':
         specifier: ^4.20240903.0
         version: 4.20240903.0
+      '@tsconfig/strictest':
+        specifier: ^2.0.5
+        version: 2.0.5
       '@types/node':
         specifier: ^18
         version: 18.19.50
@@ -1696,6 +1699,9 @@ packages:
 
   '@tsconfig/node16@1.0.4':
     resolution: {integrity: sha512-vxhUy4J8lyeyinH7Azl1pdd43GJhZH/tP2weN8TntQblOY+A0XbT8DJk1/oCPuOOyg/Ja757rG0CgHcWC8OfMA==}
+
+  '@tsconfig/strictest@2.0.5':
+    resolution: {integrity: sha512-ec4tjL2Rr0pkZ5hww65c+EEPYwxOi4Ryv+0MtjeaSQRJyq322Q27eOQiFbuNgw2hpL4hB1/W/HBGk3VKS43osg==}
 
   '@tsd/typescript@5.4.5':
     resolution: {integrity: sha512-saiCxzHRhUrRxQV2JhH580aQUZiKQUXI38FcAcikcfOomAil4G4lxT0RfrrKywoAYP/rqAdYXYmNRLppcd+hQQ==}
@@ -7145,6 +7151,8 @@ snapshots:
   '@tsconfig/node14@1.0.3': {}
 
   '@tsconfig/node16@1.0.4': {}
+
+  '@tsconfig/strictest@2.0.5': {}
 
   '@tsd/typescript@5.4.5': {}
 

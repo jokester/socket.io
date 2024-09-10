@@ -1,5 +1,5 @@
 import * as http from 'http';
-import * as sio from 'socket.io';
+import * as sio from 'socket.io/lib/index';
 import debug from 'debug';
 
 import * as forwardEverything from '../app/forward-everything';
@@ -27,7 +27,7 @@ Please find more information at https://github.com/jokester/limb .
       );
   });
 
-  const ioServer = new sio.Server(httpServer, {
+  const ioServer= new sio.Server(httpServer, {
     cleanupEmptyChildNamespaces: true,
     cors: {
       origin(origin, callback) {
