@@ -21,7 +21,7 @@ declare const self: CF.ServiceWorkerGlobalScope;
  * - accepts incoming WebSocket connection
  * - emit eio.Socket
  */
-export class EngineActor extends DurableObject implements CF.DurableObject {
+export class EngineActor extends DurableObject<WorkerBindings> implements CF.DurableObject {
 
     // @ts-ignore
     fetch(request: Request): Response | Promise<Response> {
