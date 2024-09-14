@@ -26,11 +26,37 @@ export class EngineActor extends DurableObject<WorkerBindings> implements CF.Dur
     // @ts-ignore
     fetch(request: Request): Response | Promise<Response> {
         debugLogger('engineActor.fetch', this, request.url);
+
         return this.honoApp.value.fetch(request)
     }
 
     // @ts-ignore
     private readonly honoApp = lazy(() => createHandler(this, this.ctx, this.env))
+
+    onConnection() {
+        this.env.socketActor.onEioSocketMessage(this.id, 'sid', 'message')
+    }
+    
+    webSocketClose(ws: CF.WebSocket, code: number, reason: string, wasClean: boolean): void | Promise<void> {
+        
+    }
+
+    webSocketError(ws: CF.WebSocket, error: unknown): void | Promise<void> {
+        
+    }
+
+    webSocketMessage(ws: CF.WebSocket, message: string | ArrayBuffer): void | Promise<void> {
+        const sessionId = '' // FIXME
+
+        // find session id from ws 'tag'
+        // decode ws message
+        // forward to SocketActor
+        
+    }
+}
+
+export interface EngineActorAddr {
+
 }
 
 function createHandler(actor: EngineActor, actorCtx: CF.DurableObjectState, env: WorkerBindings) {
@@ -60,6 +86,11 @@ function createHandler(actor: EngineActor, actorCtx: CF.DurableObjectState, env:
             // serverSocket.send('hello')
             const transport = CustomTransport.create(serverSocket);
             const eioSocket = CustomSocket.create(sid, transport);
+
+            const addr: EngineActorAddr = {
+
+                a: actorCtx.id
+            }
 
             // await actor.onEioSocket(sid, transport);
             return new self.Response(null, {status: 101, webSocket: clientSocket});
