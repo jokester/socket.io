@@ -2,6 +2,7 @@ import esbuild from 'esbuild';
 import path from 'path';
 import fs from 'fs';
 import debug from 'debug'
+
 debug.inspectOpts.depth = 10;
 
 const debugLogger = debug('demo-server:build');
@@ -19,6 +20,7 @@ async function getLocalSioDir(pkgName) {
   }
   throw new Error(`Could not find package directory for ${pkgName}`)
 }
+
 /**
  * @param {string} pkgName
  * @returns {Promise<string>}
@@ -30,7 +32,7 @@ async function findPackageDir2(pkgName) {
     const resolvedPath = new URL(resolved).pathname
 
     for (
-      let dir = path.dirname(resolvedPath); dir !== path.dirname(dir); dir =path.dirname(dir)
+      let dir = path.dirname(resolvedPath); dir !== path.dirname(dir); dir = path.dirname(dir)
     ) {
       if (path.basename(dir) === pkgName && fs.existsSync(path.join(dir, 'package.json'))) {
         return dir
@@ -53,6 +55,7 @@ const rewireSocketIoImports = {
   name: 'rewireSocketIoPackages',
   setup(build) {
     const packageImportMap = {
+      'base64id': path.join(sioServerlessRoot, 'mocks/base64id/index.mjs'),
       'socket.io': path.join(sioPackagesRoot, 'socket.io/lib/index.ts'),
       'engine.io': path.join(sioPackagesRoot, 'engine.io/lib/engine.io.ts'),
       'engine.io-parser': path.join(sioPackagesRoot, 'engine.io-parser/lib/index.ts'),
@@ -100,6 +103,7 @@ function buildRewirePlugin(imports) {
   const serverlessRewireMap = {
     'debug': path.join(mocksRoot, 'debug/index.js'),
     'ws': path.join(mocksRoot, 'ws/index.js'),
+    'accepts': path.join(mocksRoot, 'empty.js'),
     'path': path.join(mocksRoot, 'empty.js'),
     'fs': path.join(mocksRoot, 'empty.js'),
     'zlib': path.join(mocksRoot, 'empty.js'),
@@ -160,8 +164,12 @@ const cfBuildContext = {
   platform: 'neutral',
   metafile: true,
   outfile: 'dist/cf-main.js',
-  external: ['cloudflare:workers', 'events', 'debug', 'timers'],
-  plugins: [rewireSocketIoImports, buildRewirePlugin(['debug']) ]
+  external: ['cloudflare:workers', 'events', 'debug', 'timers', 'url', 'zlib', 'stream', 'crypto', 'querystring'],
+  plugins: [rewireSocketIoImports,
+    buildRewirePlugin(
+      ['debug', 'http', 'net', 'tls', 'https', 'cors', 'ws', 'path', 'fs']
+    )
+  ]
 }
 
 async function buildNode() {
@@ -182,8 +190,7 @@ async function buildCf(watch = false) {
 async function watchCf() {
   const ctx = await esbuild.context(cfBuildContext);
 
-  await ctx.watch({
-  })
+  await ctx.watch({})
 
 }
 
@@ -193,9 +200,9 @@ async function reportBuildResult(buildResult) {
   }
   const {metafile} = buildResult;
   const {outputs} = metafile;
-  for(const [inputFile, inputInfo] of Object.entries(metafile.inputs)) {
+  for (const [inputFile, inputInfo] of Object.entries(metafile.inputs)) {
     const {imports, bytes} = inputInfo;
-    for(const imp of imports) {
+    for (const imp of imports) {
       if (imp.path.includes('node_modules/hono/')) {
         continue
       }

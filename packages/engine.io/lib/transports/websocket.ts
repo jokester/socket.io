@@ -3,7 +3,7 @@ import debugModule from "debug";
 import type { Packet, RawData } from "engine.io-parser";
 import type {PerMessageDeflateOptions, WebSocket as WsWebSocket} from 'ws'
 
-const debug = (...args) => console.debug("engine:ws", ...args);
+const debug = debugModule("engine:ws")
 
 /**
  * WebSocket object in 'ws' package

@@ -1,7 +1,10 @@
 import type * as CF from '@cloudflare/workers-types';
 import {DurableObject} from "cloudflare:workers";
+import {Server as SioServer } from 'socket.io/lib/index';
+import {Client as SioClient} from 'socket.io/lib/client';
 import type {WorkerBindings} from "./workerApp";
 import debug from 'debug'
+import {lazy} from "@jokester/socket.io-serverless/src/utils/lazy";
 
 const debugLogger = debug('sio-serverless:SocketActor');
 
@@ -10,7 +13,6 @@ export class SocketActor extends DurableObject<WorkerBindings> implements CF.Dur
 
     fetch(req: CF.Request) {
         throw new Error('Method not implemented.');
-        return new self.Response(null)
     }
 
     onEioSocketConnection(actorAddr: CF.DurableObjectId, socketId: string) {
@@ -18,7 +20,7 @@ export class SocketActor extends DurableObject<WorkerBindings> implements CF.Dur
     }
     onEioSocketData(actorAddr: CF.DurableObjectId, socketId: string, data: unknown) {
         debugLogger('SocketActor#onEioSocketData', actorAddr, socketId, data)
-        // throw new Error('Method not implemented.');
+        throw new Error('Method not implemented.');
     }
 
     onEioSocketClose(actorAddr: CF.DurableObjectId, socketId: string, code: number, reason: string) {
@@ -28,5 +30,30 @@ export class SocketActor extends DurableObject<WorkerBindings> implements CF.Dur
     onEioSocketError(actorAddr: CF.DurableObjectId, socketId: string, error: unknown) {
         debugLogger('SocketActor#onEioSocketError', actorAddr, socketId, error)
     }
+
+    private readonly sioServer = lazy(() => new CustomSioServer())
 }
 
+class CustomSioServer extends SioServer {
+    constructor(dehydrate?: any) {
+        super(undefined, {
+            transports: ['websocket'],
+            allowEIO3: false,
+            serveClient: false,
+            connectionStateRecovery: null,
+            cleanupEmptyChildNamespaces: true,
+            // adapter: TODO,
+
+        }, );
+    }
+
+}
+
+class CustomSioClient extends SioClient {
+
+
+    setup() {
+
+    }
+
+}

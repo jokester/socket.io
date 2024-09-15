@@ -28,6 +28,11 @@ declare const self: CF.ServiceWorkerGlobalScope;
  */
 export class EngineActor extends DurableObject<WorkerBindings> implements CF.DurableObject {
 
+    constructor(...args: any[]) {
+        super(...args);
+        this._init()
+    }
+
     // @ts-ignore
     fetch(request: Request): Response | Promise<Response> {
         // debugLogger('engineActor.fetch', this, request.url);
@@ -104,6 +109,15 @@ export class EngineActor extends DurableObject<WorkerBindings> implements CF.Dur
         }
     }
 
+    private _inited = false
+    private _init() {
+        if (this._inited) {
+            return
+        }
+        debugLogger('EngineActor#_init')
+        this._inited = true
+    }
+
 }
 
 function createHandler(actor: EngineActor, actorCtx: CF.DurableObjectState, env: WorkerBindings) {
@@ -162,7 +176,7 @@ class CustomTransport extends EioWebSocketTransport {
         const stubWebSocket = createStubWebSocket(cfWebSocket);
         const stubReq = createStubRequest(stubWebSocket);
         const transport = new CustomTransport(stubReq);
-        debugLogger('sio-serverless:CustomTransport created', transport.on, transport.once)
+        debugLogger('sio-serverless:CustomTransport created')
         return transport;
     }
 }

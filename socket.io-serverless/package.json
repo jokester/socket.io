@@ -13,6 +13,7 @@
   "license": "BSD",
   "dependencies": {
     "@jokester/ts-commonutil": "^0.6.0",
+    "base64id": "^2.0.0",
     "debug": "^4.3.7",
     "engine.io": "workspace:*",
     "hono": "^4.5.11",

@@ -738,13 +738,12 @@ export class Server<
       return parentNsp;
     }
 
-    if (String(name)[0] !== "/") name = "/" + name;
+    if (name[0] !== "/") name = "/" + name;
 
     let nsp = this._nsps.get(name);
     if (!nsp) {
       for (const [regex, parentNamespace] of this.parentNamespacesFromRegExp) {
-      	// XXX is cast still required?
-        if (regex.test(name as string)) {
+        if (regex.test(name)) {
           debug("attaching namespace %s to parent namespace %s", name, regex);
           return parentNamespace.createChild(name as string);
         }

@@ -1,11 +1,18 @@
-const enabledPrefix = name =>
-  ['engine',
-    'socket', 'sio-worker'].some(prefix => name.startsWith(prefix));
+const enabledPrefixes = [
+  // 'engine', 'socket',
+  'sio-worker',
+  'sio-serverless',
+  'sio-serverless:SocketActor'
+]
 
-module.exports =
-  name =>
-  (...args) => {
-    if (true ||enabledPrefix(name)) {
-      console.debug(new Date(), 'DEBUG', name, ...args);
-    }
-  };
+function enablePrefix(name) {
+  return enabledPrefixes.some(prefix => name.startsWith(prefix));
+}
+
+module.exports = name => enablePrefix(name) ? doLog.bind(null, name) : noop;
+
+function doLog(name, ...args) {
+  console.debug(new Date(), 'DEBUG', name, ...args);
+}
+
+function noop() {}

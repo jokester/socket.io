@@ -7,7 +7,7 @@ import { setTimeout, clearTimeout, } from "timers";
 import type { Packet, PacketType, RawData } from "engine.io-parser";
 import {TransportName} from "./transports";
 
-const debug = (...args) => console.debug("engine:socket", ...args);
+const debug = debugModule("engine:socket");
 
 export interface SendOptions {
   compress?: boolean;
