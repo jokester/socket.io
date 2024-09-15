@@ -3,7 +3,7 @@ import {useEffect, useState} from 'react';
 import {io, Socket} from 'socket.io-client';
 import {useSingleton} from 'foxact/use-singleton';
 import {UserBoard} from '../../../apps/v1/user-board';
-import {getSocketServerOrigin, PageProps} from '../../_shared';
+import {PageProps} from '../../_shared';
 import {useRandomId} from '../../../hooks/use-random-id';
 
 const logger = debug('app:v1:demoPage');
@@ -30,8 +30,13 @@ function usePageState(namespace: string): PageState {
   }
 
   useEffect(() => {
-    const defaultOrigin = getSocketServerOrigin();
-    const socket = io(`${defaultOrigin}/v1/${namespace}`, {
+    let sioOrigin
+    if (location.href.includes('remote=1')) {
+      sioOrigin = 'https://limb.jokester.io'
+    } else {
+      sioOrigin = 'http://localhost:18787'
+    }
+    const socket = io(`${sioOrigin}/v1/${namespace}`, {
       transports: ['websocket'],
     });
     setState(prev => ({...prev, conn: socket}));
