@@ -1,6 +1,6 @@
 import { Decoder, Encoder, Packet, PacketType } from "socket.io-parser";
-import debugModule = require("debug");
-import url = require("url");
+import debugModule from "debug";
+import url from "url";
 import type { IncomingMessage } from "http";
 import type { Server } from "./index";
 import type { Namespace } from "./namespace";

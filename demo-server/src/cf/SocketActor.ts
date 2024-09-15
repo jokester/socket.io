@@ -20,7 +20,8 @@ export class SocketActor extends DurableObject<WorkerBindings> implements CF.Dur
     }
     onEioSocketData(actorAddr: CF.DurableObjectId, socketId: string, data: unknown) {
         debugLogger('SocketActor#onEioSocketData', actorAddr, socketId, data)
-        throw new Error('Method not implemented.');
+        // throw new Error('Method not implemented.');
+        this.sioServer.value
     }
 
     onEioSocketClose(actorAddr: CF.DurableObjectId, socketId: string, code: number, reason: string) {
@@ -45,6 +46,7 @@ class CustomSioServer extends SioServer {
             // adapter: TODO,
 
         }, );
+        debugLogger('CustomSioServer#constructor', dehydrate)
     }
 
 }
