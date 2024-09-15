@@ -30,7 +30,7 @@ export class EngineActor extends DurableObject<WorkerBindings> implements CF.Dur
 
     // @ts-ignore
     fetch(request: Request): Response | Promise<Response> {
-        debugLogger('engineActor.fetch', this, request.url);
+        // debugLogger('engineActor.fetch', this, request.url);
 
         return this.honoApp.value.fetch(request)
     }
@@ -51,11 +51,18 @@ export class EngineActor extends DurableObject<WorkerBindings> implements CF.Dur
 
 
     webSocketClose(ws: CF.WebSocket, code: number, reason: string, wasClean: boolean): void | Promise<void> {
-
+        const {sessionId, socketActorId} = this.getWebsocketMeta(ws)
+        const socket = this._transports.getOrCreate(sessionId)!
+        debugLogger('EngineActor#webSocketClose', sessionId, code, reason, wasClean)
+        this._transports.delete(sessionId)
+        socket.onCfClose()
     }
 
     webSocketError(ws: CF.WebSocket, error: unknown): void | Promise<void> {
-
+        const {sessionId, socketActorId} = this.getWebsocketMeta(ws)
+        const socket = this._transports.getOrCreate(sessionId)!
+        debugLogger('EngineActor#webSocketError', sessionId, error)
+        socket.onCfError('error', String(error))
     }
 
     get _env() {
@@ -71,7 +78,10 @@ export class EngineActor extends DurableObject<WorkerBindings> implements CF.Dur
     webSocketMessage(ws: CF.WebSocket, message: string | ArrayBuffer): void | Promise<void> {
         const {sessionId, socketActorId} = this.getWebsocketMeta(ws)
 
+        const socket = this._transports.getOrCreate(sessionId)!
         debugLogger('ws message', sessionId, message)
+
+        socket.onCfMessage(message as string)
 
         // decode ws message
         // forward to SocketActor
@@ -110,7 +120,6 @@ function createHandler(actor: EngineActor, actorCtx: CF.DurableObjectState, env:
             }
 
             const socketId = ctx.req.query('eio_sid')!
-            debugLogger('new ws connection', ctx.req.url, socketId);
             if (socketId?.length !== 10) {
                 return new Response(null, {
                     status: 400,
@@ -118,7 +127,7 @@ function createHandler(actor: EngineActor, actorCtx: CF.DurableObjectState, env:
                 })
             }
 
-            debugLogger('new ws connection', ctx.req.url);
+            debugLogger('new ws connection', ctx.req.url, socketId);
             const {0: clientSocket, 1: serverSocket} = new self.WebSocketPair();
             // TODO: if req contains a Engine.io sid, should query engine.io server to follow the protocol
 
@@ -134,7 +143,7 @@ function createHandler(actor: EngineActor, actorCtx: CF.DurableObjectState, env:
             const eioSocket = CustomSocket.create(sid, transport);
 
             debugLogger('created transport for sid', sid)
-            actor._transports.set(sid, transport)
+            actor._transports.set(sid, eioSocket)
 
             // const stub = env.socketActor.get(env.socketActor.idFromString('singleton'))
             // await stub.onEioSocketConnection(actorCtx.id, sid)
@@ -162,7 +171,7 @@ export class CustomSocket extends EioSocket {
         return new CustomSocket(sid, transport);
     }
 
-    constructor(sid: string, readonly transport: CustomTransport) {
+    constructor(private readonly sid: string, readonly transport: CustomTransport) {
         super(sid, createStubEioServer(), transport, null, 4);
     }
 
@@ -174,6 +183,7 @@ export class CustomSocket extends EioSocket {
     }
 
     onCfMessage(msg: string | Buffer) {
+        debugLogger('onCfMessage', this.sid, msg);
         const msgStr = typeof msg === 'string' ? msg : msg.toString();
         (this.transport as EioWebSocket)._socket.emit('message', msgStr);
     }
