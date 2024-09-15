@@ -197,6 +197,7 @@ export class CustomSocket extends EioSocket {
         // @ts-ignore
         const destStub: SocketActor = this.eioActor._env.socketActor.get(destId)
 
+        // TODO: close/error events may should be short circuited
         this.on('data', data => destStub.onEioSocketData(eioAddr, this._sid, data));
         this.on('close', (code, reason) => destStub.onEioSocketClose(eioAddr, this._sid, code, reason));
         this.on('error', error => destStub.onEioSocketError(eioAddr, this._sid, error));
