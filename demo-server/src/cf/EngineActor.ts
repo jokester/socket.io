@@ -1,19 +1,24 @@
 import type * as CF from '@cloudflare/workers-types';
-// @ts-ignore
 import type {WorkerBindings} from "./workerApp";
 import {lazy} from "@jokester/socket.io-serverless/src/utils/lazy";
 import {Hono} from "hono";
-import {createDebugLogger} from "@jokester/socket.io-serverless/src/utils/logger";
+// @ts-ignore
 import type * as eio from 'engine.io/lib/engine.io.ts'
 import type {WebSocket as WsWebSocket} from 'ws'
 import {EventEmitter} from "events";
+// @ts-ignore
 import {DurableObject} from "cloudflare:workers";
+// @ts-ignore
 import {WebSocket as EioWebSocketTransport} from 'engine.io/lib/transports/websocket';
+// @ts-ignore
 import {Socket as EioSocket} from 'engine.io/lib/socket'
 import {EioWebSocket} from "@jokester/socket.io-serverless/src/EngineStub";
+import {DefaultMap} from "@jokester/ts-commonutil/lib/collection/default-map";
+import debug from 'debug'
+import {SocketActor} from "./SocketActor";
 // import {EioSocket, EioWebSocket} from "@jokester/socket.io-serverless/src/EngineStub";
 
-const debugLogger = createDebugLogger('sio-worker:EngineActor');
+const debugLogger = debug('sio-serverless:EngineActor');
 declare const self: CF.ServiceWorkerGlobalScope;
 
 /**
@@ -32,27 +37,60 @@ export class EngineActor extends DurableObject<WorkerBindings> implements CF.Dur
 
     // @ts-ignore
     private readonly honoApp = lazy(() => createHandler(this, this.ctx, this.env))
+    readonly _transports = new DefaultMap<string, CustomSocket>((sessionId) => {
+        const tag = `sid:${sessionId}`
 
-    onConnection() {
-        this.env.socketActor.onEioSocketMessage(this.id, 'sid', 'message')
-    }
-    
+        const ws = this._ctx.getWebSockets(tag)
+        if (ws.length !== 1) {
+            throw new Error(`no websocket found for sid=${sessionId}`)
+        }
+        debugLogger('revived transport/eio.socket for sid', sessionId)
+        const transport = CustomTransport.create(ws[0]!)
+        return CustomSocket.create(sessionId, transport)
+    })
+
+
     webSocketClose(ws: CF.WebSocket, code: number, reason: string, wasClean: boolean): void | Promise<void> {
-        
+
     }
 
     webSocketError(ws: CF.WebSocket, error: unknown): void | Promise<void> {
-        
+
+    }
+
+    get _env() {
+        // @ts-ignore
+        return this.env as WorkerBindings
+    }
+
+    get _ctx(): CF.DurableObjectState {
+        // @ts-ignore
+        return this.ctx
     }
 
     webSocketMessage(ws: CF.WebSocket, message: string | ArrayBuffer): void | Promise<void> {
-        const sessionId = '' // FIXME
+        const {sessionId, socketActorId} = this.getWebsocketMeta(ws)
 
-        // find session id from ws 'tag'
+        debugLogger('ws message', sessionId, message)
+
         // decode ws message
         // forward to SocketActor
-        
+
     }
+
+    private getWebsocketMeta(ws: CF.WebSocket): { sessionId: string, socketActorId: CF.DurableObjectId } {
+        const tags = this._ctx.getTags(ws)
+        const sessionTag = tags.find(tag => tag.startsWith('sid:'))
+        if (!sessionTag) {
+            throw new Error('no session tag found')
+        }
+        const sessionId = sessionTag.slice('sid:'.length)
+        return {
+            sessionId,
+            socketActorId: this._env.socketActor.idFromName('singleton')
+        }
+    }
+
 }
 
 export interface EngineActorAddr {
@@ -71,7 +109,14 @@ function createHandler(actor: EngineActor, actorCtx: CF.DurableObjectState, env:
                 });
             }
 
-            const socketId = ctx.req.param('eio_sid')!
+            const socketId = ctx.req.query('eio_sid')!
+            debugLogger('new ws connection', ctx.req.url, socketId);
+            if (socketId?.length !== 10) {
+                return new Response(null, {
+                    status: 400,
+                    statusText: `invalid eio_sid: ${socketId}`,
+                })
+            }
 
             debugLogger('new ws connection', ctx.req.url);
             const {0: clientSocket, 1: serverSocket} = new self.WebSocketPair();
@@ -84,13 +129,15 @@ function createHandler(actor: EngineActor, actorCtx: CF.DurableObjectState, env:
             const tags = [`sid:${sid}`];
             actorCtx.acceptWebSocket(serverSocket, tags);
             // serverSocket.send('hello')
+            // const socket = actor._transports.getOrCreate(sid)
             const transport = CustomTransport.create(serverSocket);
             const eioSocket = CustomSocket.create(sid, transport);
 
-            const addr: EngineActorAddr = {
+            debugLogger('created transport for sid', sid)
+            actor._transports.set(sid, transport)
 
-                a: actorCtx.id
-            }
+            // const stub = env.socketActor.get(env.socketActor.idFromString('singleton'))
+            // await stub.onEioSocketConnection(actorCtx.id, sid)
 
             // await actor.onEioSocket(sid, transport);
             return new self.Response(null, {status: 101, webSocket: clientSocket});
@@ -102,6 +149,7 @@ class CustomTransport extends EioWebSocketTransport {
         // @ts-expect-error use of private
         return this.socket;
     }
+
     static create(cfWebSocket: CF.WebSocket): CustomTransport {
         const stubWebSocket = createStubWebSocket(cfWebSocket);
         const stubReq = createStubRequest(stubWebSocket);
@@ -113,17 +161,23 @@ export class CustomSocket extends EioSocket {
     static create(sid: string, transport: CustomTransport): CustomSocket {
         return new CustomSocket(sid, transport);
     }
+
     constructor(sid: string, readonly transport: CustomTransport) {
         super(sid, createStubEioServer(), transport, null, 4);
     }
-    schedulePing() { /* noop to prevent 'window' NPE FIXME should work around better */ }
+
+    schedulePing() { /* noop to prevent 'window' NPE FIXME should work around better */
+    }
+
     onCfClose() {
         (this.transport as CustomTransport)._socket.emit('close');
     }
+
     onCfMessage(msg: string | Buffer) {
         const msgStr = typeof msg === 'string' ? msg : msg.toString();
         (this.transport as EioWebSocket)._socket.emit('message', msgStr);
     }
+
     onCfError(msg: string, desc?: string) {
         (this.transport as EioWebSocket)._socket.emit('error', new Error(msg));
     }

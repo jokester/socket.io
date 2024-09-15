@@ -92,38 +92,42 @@ const rewireSocketIoImports = {
 
 /**
  * rewire when building for serverless environment
- * @type {esbuild.Plugin}
+ * @param {string[]} imports
+ * @return {esbuild.Plugin}
+ *
  */
-const rewireServerlessImports = {
-  name: 'injectSocketIoServerlessMocks',
-  setup(build) {
+function buildRewirePlugin(imports) {
+  const serverlessRewireMap = {
+    'debug': path.join(mocksRoot, 'debug/index.js'),
+    'ws': path.join(mocksRoot, 'ws/index.js'),
+    'path': path.join(mocksRoot, 'empty.js'),
+    'fs': path.join(mocksRoot, 'empty.js'),
+    'zlib': path.join(mocksRoot, 'empty.js'),
+    'crypto': path.join(mocksRoot, 'empty.js'),
+    'events': path.join(mocksRoot, 'empty.js'),
+    'https': path.join(mocksRoot, 'empty.js'),
+    'http': path.join(mocksRoot, 'empty.js'),
+    'tls': path.join(mocksRoot, 'empty.js'),
+    'url': path.join(mocksRoot, 'empty.js'),
+    'querystring': path.join(mocksRoot, 'empty.js'),
+    'base64id': path.join(mocksRoot, 'empty.js'),
+    'cors': path.join(mocksRoot, 'empty.js'),
+    'net': path.join(mocksRoot, 'empty.js'),
+    'timers': path.join(mocksRoot, 'empty.js'),
+    'stream': path.join(mocksRoot, 'empty.js'),
+  }
 
-    const mockMap = {
-      'debug': path.join(mocksRoot, 'debug/index.js'),
-      'ws': path.join(mocksRoot, 'ws/index.js'),
-      'path': path.join(mocksRoot, 'empty.js'),
-      'fs': path.join(mocksRoot, 'empty.js'),
-      'zlib': path.join(mocksRoot, 'empty.js'),
-      'crypto': path.join(mocksRoot, 'empty.js'),
-      'events': path.join(mocksRoot, 'empty.js'),
-      'https': path.join(mocksRoot, 'empty.js'),
-      'http': path.join(mocksRoot, 'empty.js'),
-      'tls': path.join(mocksRoot, 'empty.js'),
-      'url': path.join(mocksRoot, 'empty.js'),
-      'querystring': path.join(mocksRoot, 'empty.js'),
-      'base64id': path.join(mocksRoot, 'empty.js'),
-      'cors': path.join(mocksRoot, 'empty.js'),
-      'net': path.join(mocksRoot, 'empty.js'),
-      'timers': path.join(mocksRoot, 'empty.js'),
-      'stream': path.join(mocksRoot, 'empty.js'),
-    }
-    build.onResolve({filter: /./}, async args => {
-      if (args.path in mockMap) {
-        return {
-          path: mockMap[args.path]
+  return {
+    name: 'injectSocketIoServerlessMocks',
+    setup(build) {
+      build.onResolve({filter: /./}, async args => {
+        if (imports.includes(args.path)) {
+          return {
+            path: serverlessRewireMap[args.path]
+          }
         }
-      }
-    })
+      })
+    }
   }
 }
 
@@ -157,7 +161,7 @@ const cfBuildContext = {
   metafile: true,
   outfile: 'dist/cf-main.js',
   external: ['cloudflare:workers', 'events', 'debug', 'timers'],
-  plugins: [rewireSocketIoImports, ]
+  plugins: [rewireSocketIoImports, buildRewirePlugin(['debug']) ]
 }
 
 async function buildNode() {

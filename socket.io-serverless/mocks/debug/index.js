@@ -1,11 +1,11 @@
 const enabledPrefix = name =>
-  [// 'engine',
+  ['engine',
     'socket', 'sio-worker'].some(prefix => name.startsWith(prefix));
 
 module.exports =
   name =>
   (...args) => {
-    if (enabledPrefix(name)) {
+    if (true ||enabledPrefix(name)) {
       console.debug(new Date(), 'DEBUG', name, ...args);
     }
   };
