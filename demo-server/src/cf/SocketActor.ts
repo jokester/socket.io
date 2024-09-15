@@ -16,15 +16,17 @@ export class SocketActor extends DurableObject<WorkerBindings> implements CF.Dur
     onEioSocketConnection(actorAddr: CF.DurableObjectId, socketId: string) {
         throw new Error('Method not implemented.');
     }
-    onEioSocketMessage(actorAddr: CF.DurableObjectId, socketId: string, message: string) {
-        throw new Error('Method not implemented.');
+    onEioSocketData(actorAddr: CF.DurableObjectId, socketId: string, data: unknown) {
+        debugLogger('SocketActor#onEioSocketData', actorAddr, socketId, data)
+        // throw new Error('Method not implemented.');
     }
 
     onEioSocketClose(actorAddr: CF.DurableObjectId, socketId: string, code: number, reason: string) {
-
+        debugLogger('SocketActor#onEioSocketClose', actorAddr, socketId, code, reason)
     }
 
     onEioSocketError(actorAddr: CF.DurableObjectId, socketId: string, error: unknown) {
+        debugLogger('SocketActor#onEioSocketError', actorAddr, socketId, error)
     }
 }
 

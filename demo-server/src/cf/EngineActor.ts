@@ -45,23 +45,39 @@ export class EngineActor extends DurableObject<WorkerBindings> implements CF.Dur
             throw new Error(`no websocket found for sid=${sessionId}`)
         }
         debugLogger('revived transport/eio.socket for sid', sessionId)
+        // FIXME: when reviving , should not send message like
+        // 0{"sid":"d6d2b73e9b","upgrades":[],"pingInterval":20000,"pingTimeout":25000}
         const transport = CustomTransport.create(ws[0]!)
-        return CustomSocket.create(sessionId, transport)
+        return CustomSocket.create(this, sessionId, transport)
     })
 
+    webSocketMessage(ws: CF.WebSocket, message: string | ArrayBuffer): void | Promise<void> {
+        const {sessionId, socketActorId} = this.getWebsocketMeta(ws)
+
+        const socket = this._transports.getOrCreate(sessionId)!
+        debugLogger('ws message', sessionId, message)
+
+        socket.setupOutgoingEvents()
+        socket.onCfMessage(message as string)
+        // decode ws message
+        // forward to SocketActor
+
+    }
 
     webSocketClose(ws: CF.WebSocket, code: number, reason: string, wasClean: boolean): void | Promise<void> {
         const {sessionId, socketActorId} = this.getWebsocketMeta(ws)
         const socket = this._transports.getOrCreate(sessionId)!
         debugLogger('EngineActor#webSocketClose', sessionId, code, reason, wasClean)
-        this._transports.delete(sessionId)
+        socket.setupOutgoingEvents()
         socket.onCfClose()
+        this._transports.delete(sessionId)
     }
 
     webSocketError(ws: CF.WebSocket, error: unknown): void | Promise<void> {
         const {sessionId, socketActorId} = this.getWebsocketMeta(ws)
         const socket = this._transports.getOrCreate(sessionId)!
         debugLogger('EngineActor#webSocketError', sessionId, error)
+        socket.setupOutgoingEvents()
         socket.onCfError('error', String(error))
     }
 
@@ -75,20 +91,7 @@ export class EngineActor extends DurableObject<WorkerBindings> implements CF.Dur
         return this.ctx
     }
 
-    webSocketMessage(ws: CF.WebSocket, message: string | ArrayBuffer): void | Promise<void> {
-        const {sessionId, socketActorId} = this.getWebsocketMeta(ws)
-
-        const socket = this._transports.getOrCreate(sessionId)!
-        debugLogger('ws message', sessionId, message)
-
-        socket.onCfMessage(message as string)
-
-        // decode ws message
-        // forward to SocketActor
-
-    }
-
-    private getWebsocketMeta(ws: CF.WebSocket): { sessionId: string, socketActorId: CF.DurableObjectId } {
+    getWebsocketMeta(ws: CF.WebSocket): { sessionId: string, socketActorId: CF.DurableObjectId } {
         const tags = this._ctx.getTags(ws)
         const sessionTag = tags.find(tag => tag.startsWith('sid:'))
         if (!sessionTag) {
@@ -100,10 +103,6 @@ export class EngineActor extends DurableObject<WorkerBindings> implements CF.Dur
             socketActorId: this._env.socketActor.idFromName('singleton')
         }
     }
-
-}
-
-export interface EngineActorAddr {
 
 }
 
@@ -140,7 +139,7 @@ function createHandler(actor: EngineActor, actorCtx: CF.DurableObjectState, env:
             // serverSocket.send('hello')
             // const socket = actor._transports.getOrCreate(sid)
             const transport = CustomTransport.create(serverSocket);
-            const eioSocket = CustomSocket.create(sid, transport);
+            const eioSocket = CustomSocket.create(actor, sid, transport);
 
             debugLogger('created transport for sid', sid)
             actor._transports.set(sid, eioSocket)
@@ -162,20 +161,51 @@ class CustomTransport extends EioWebSocketTransport {
     static create(cfWebSocket: CF.WebSocket): CustomTransport {
         const stubWebSocket = createStubWebSocket(cfWebSocket);
         const stubReq = createStubRequest(stubWebSocket);
-        return new CustomTransport(stubReq);
+        const transport = new CustomTransport(stubReq);
+        debugLogger('sio-serverless:CustomTransport created', transport.on, transport.once)
+        return transport;
     }
 }
 
+interface SocketMeta {
+
+}
+/**
+ * A stub that should still emit the following events (used by sio.Client)
+ * - data
+ * - error
+ * - close
+ */
 export class CustomSocket extends EioSocket {
-    static create(sid: string, transport: CustomTransport): CustomSocket {
-        return new CustomSocket(sid, transport);
+    static create(eioActor: EngineActor, sid: string, transport: CustomTransport): CustomSocket {
+        return new CustomSocket(eioActor, sid, transport);
     }
 
-    constructor(private readonly sid: string, readonly transport: CustomTransport) {
-        super(sid, createStubEioServer(), transport, null, 4);
+    private _setupDone = false;
+
+    constructor(private readonly eioActor: EngineActor, private readonly _sid: string, private readonly __transport: CustomTransport) {
+        super(_sid, createStubEioServer(), __transport, null, 4);
+    }
+
+    setupOutgoingEvents() {
+        if (this._setupDone) {
+            return
+        }
+        debugLogger('setup outgoing events', this._sid)
+        const eioAddr = this.eioActor._ctx.id;
+        const destId = this.eioActor._env.socketActor.idFromName('singleton')
+        // @ts-ignore
+        const destStub: SocketActor = this.eioActor._env.socketActor.get(destId)
+
+        this.on('data', data => destStub.onEioSocketData(eioAddr, this._sid, data));
+        this.on('close', (code, reason) => destStub.onEioSocketClose(eioAddr, this._sid, code, reason));
+        this.on('error', error => destStub.onEioSocketError(eioAddr, this._sid, error));
+
+        this._setupDone = true
     }
 
     schedulePing() { /* noop to prevent 'window' NPE FIXME should work around better */
+        this.sendPacket('ping')
     }
 
     onCfClose() {
@@ -222,8 +252,8 @@ function createStubEioServer() {
     const server = new EventEmitter();
     Object.assign(server, {
         opts: {
-            pingInterval: 20000,
-            pingTimeout: 25000,
+            pingInterval: 200000,
+            pingTimeout: 250000,
         } as eio.ServerOptions,
         upgrades: () => [],
     });
