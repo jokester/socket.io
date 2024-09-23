@@ -215,6 +215,7 @@ export class CustomSocket extends EioSocket {
         this.on('data', data => destStub.onEioSocketData(eioAddr, this._sid, data));
         this.on('close', (code, reason) => destStub.onEioSocketClose(eioAddr, this._sid, code, reason));
         this.on('error', error => destStub.onEioSocketError(eioAddr, this._sid, error));
+        destStub.onEioSocketConnection(eioAddr, this._sid)
 
         this._setupDone = true
     }

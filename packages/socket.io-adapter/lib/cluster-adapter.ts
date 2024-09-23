@@ -6,6 +6,7 @@ import type {
 } from "./in-memory-adapter";
 import { debug as debugModule } from "debug";
 import { randomBytes } from "crypto";
+import type {Packet} from 'socket.io-parser/lib'
 
 const debug = debugModule("socket.io-adapter");
 const EMITTER_UID = "emitter";
@@ -451,7 +452,7 @@ export abstract class ClusterAdapter extends Adapter {
    * @private
    */
   private addOffsetIfNecessary(
-    packet: any,
+    packet: Packet,
     opts: BroadcastOptions,
     offset: Offset
   ) {
