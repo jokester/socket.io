@@ -1,12 +1,13 @@
 import type * as CF from '@cloudflare/workers-types';
-import {DurableObject} from "cloudflare:workers";
-import {Server as SioServer } from 'socket.io/lib/index';
-import {Client as SioClient} from 'socket.io/lib/client';
-import {InMemoryAdapter} from 'socket.io-adapter/lib'
-import type {WorkerBindings} from "./workerApp";
+import { DurableObject } from "cloudflare:workers";
+import { Server as SioServer, Namespace, Socket } from 'socket.io/lib/index';
+import { Client as SioClient } from 'socket.io/lib/client';
+import { InMemoryAdapter } from 'socket.io-adapter/lib'
+import type { WorkerBindings } from "./workerApp";
 import debug from 'debug'
-import {lazy} from "@jokester/socket.io-serverless/src/utils/lazy";
-import {EventEmitter} from "events";
+import { lazy } from "@jokester/socket.io-serverless/src/utils/lazy";
+import { EventEmitter } from "events";
+import { pid } from 'process';
 
 const debugLogger = debug('sio-serverless:SocketActor');
 
@@ -50,9 +51,11 @@ interface CustomSioServerDelegate {
  */
 interface HydratedServerState {
     concreteNamespaces: string[]
-    connections: Map</* eio.socketId */string, {actorAddr: CF.DurableObjectId, namespaces: string[], rooms: string[]}>
-
-
+    connections: Map</* eio.socketId */string,
+        {
+            actorAddr: CF.DurableObjectId, namespaces: Map</* concreteNsp.name */string,
+                { id: string, rooms: string[], missedPackets: [], data: {} }>
+        }>
 }
 
 class CustomSioServer extends SioServer {
@@ -67,7 +70,7 @@ class CustomSioServer extends SioServer {
             connectionStateRecovery: null,
             cleanupEmptyChildNamespaces: true,
             // adapter: TODO,
-        }, );
+        },);
         this.restoreState(dehydrate)
     }
 
@@ -78,12 +81,22 @@ class CustomSioServer extends SioServer {
      */
     private restoreState(s?: HydratedServerState) {
         if (s) {
-            const f = new Map<string, any>()
-            for (const [socketId, {actorAddr}] of s.connections) {
+            const concreteNamespaces = new Map<string, Namespace>()
+            for (const n of s.concreteNamespaces) {
+                const nsp = new Namespace(this, n)
+                concreteNamespaces.set(n, nsp)
+            }
+            for (const [socketId, { actorAddr, namespaces }] of s.connections) {
                 const stubConn = new EioSocketStub(socketId, actorAddr, this)
                 this.connStubs.set(socketId, stubConn)
-                new CustomSioClient(this, stubConn)
-                f.set(socketId, stubConn)
+                const client = new CustomSioClient(this, stubConn)
+                for (const [ns, previousSession] of namespaces) {
+                    const nsp = concreteNamespaces.get(ns)
+                    if (!nsp) {
+                        throw new Error(`namespace ${ns} not found`)
+                    }
+                    const socket = new Socket(nsp, client, {}, previousSession)
+                }
             }
             // TODO: more
         }
