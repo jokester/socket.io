@@ -55,7 +55,7 @@ const rewireSocketIoImports = {
   name: 'rewireSocketIoPackages',
   setup(build) {
     const packageImportMap = {
-      'base64id': path.join(sioServerlessRoot, 'mocks/base64id/index.mjs'),
+      // 'base64id': path.join(sioServerlessRoot, 'mocks/base64id/index.mjs'),
       'socket.io': path.join(sioPackagesRoot, 'socket.io/lib/index.ts'),
       'engine.io': path.join(sioPackagesRoot, 'engine.io/lib/engine.io.ts'),
       'engine.io-parser': path.join(sioPackagesRoot, 'engine.io-parser/lib/index.ts'),
@@ -164,7 +164,7 @@ const cfBuildContext = {
   platform: 'neutral',
   metafile: true,
   outfile: 'dist/cf-main.js',
-  external: ['cloudflare:workers', 'events', 'debug', 'timers', 'url', 'zlib', 'stream', 'crypto', 'querystring'],
+  external: ['cloudflare:workers', 'events', 'debug', 'timers', 'url', 'zlib', 'stream', 'crypto', 'querystring', /* let wrangler bundle it */'base64id'],
   plugins: [rewireSocketIoImports,
     buildRewirePlugin(
       ['debug', 'http', 'net', 'tls', 'https', 'cors', 'ws', 'path', 'fs']

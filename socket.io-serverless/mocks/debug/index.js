@@ -1,8 +1,10 @@
 const enabledPrefixes = [
   // 'engine', 'socket',
-  'sio-worker',
-  'sio-serverless',
-  'sio-serverless:SocketActor'
+  // 'sio-worker',
+  // 'sio-serverless',
+  'socket',
+  'limb:',
+  'sio-serverless'
 ]
 
 function enablePrefix(name) {

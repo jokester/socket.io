@@ -7,7 +7,7 @@ import type { WorkerBindings } from "./workerApp";
 import debug from 'debug'
 import { lazy } from "@jokester/socket.io-serverless/src/utils/lazy";
 import { EventEmitter } from "events";
-import { pid } from 'process';
+import * as forwardEverything from "../app/forward-everything";
 
 const debugLogger = debug('sio-serverless:SocketActor');
 
@@ -39,11 +39,16 @@ export class SocketActor extends DurableObject<WorkerBindings> implements CF.Dur
         this.sioServer.value.onEioError(socketId, error)
     }
 
-    private readonly sioServer = lazy(() => new CustomSioServer())
+    private readonly sioServer = lazy(() => {
+        const s = new CustomSioServer();
+            s.of(forwardEverything.parentNamespace)
+            .on('connection', socket => forwardEverything.onConnection(socket));
+        return s
+    })
 }
 
 interface CustomSioServerDelegate {
-
+    setup(server: CustomSioServer): void
 }
 
 /**
@@ -100,7 +105,6 @@ class CustomSioServer extends SioServer {
             }
             // TODO: more
         }
-
     }
 
     /**
@@ -115,15 +119,24 @@ class CustomSioServer extends SioServer {
     }
 
     onEioData(eioSocketId: string, data: any) {
-        this.connStubs.get(eioSocketId)?.emit('data', data)
+        if (!this.connStubs.has(eioSocketId)) {
+            throw new Error(`eio socket ${eioSocketId} not found`)
+        }
+        this.connStubs.get(eioSocketId)!.emit('data', data)
     }
 
     onEioClose(eioSocketId: string, code: number, reason: string) {
-        this.connStubs.get(eioSocketId)?.emit('close', reason, `code: ${code}`)
+        if (!this.connStubs.has(eioSocketId)) {
+            throw new Error(`eio socket ${eioSocketId} not found`)
+        }
+        this.connStubs.get(eioSocketId)!.emit('close', reason, `code: ${code}`)
     }
 
     onEioError(eioSocketId: string, error: any) {
-        this.connStubs.get(eioSocketId)?.emit('error', error)
+        if (!this.connStubs.has(eioSocketId)) {
+            throw new Error(`eio socket ${eioSocketId} not found`)
+        }
+        this.connStubs.get(eioSocketId)!.emit('error', error)
     }
 
     closeConn(stub: EioSocketStub) {
@@ -144,7 +157,19 @@ class EioSocketStub extends EventEmitter {
         super()
     }
     get request(): {} {
-        return {}
+        /**
+         * queried by
+         * sio.Socket#buildHandshake()
+         */
+        return {
+            remoteAddress: 'unknown',
+            headers: {},
+            connection: {
+                encrypted: true,
+            },
+            url: `https://localhost:5173/dummy`
+
+        }
     }
     get protocol() {
         return 4
@@ -172,23 +197,33 @@ class EioSocketStub extends EventEmitter {
 class CustomSioClient extends SioClient {
     constructor(private readonly server: CustomSioServer, private readonly conn: EioSocketStub) {
         super(server, conn);
+        debugLogger('CustomSioClient#constructor', conn.eioSocketId)
     }
 
     /** rewrites SioClient#setup() */
     setup() {
-        // @ts-expect-error calling private method
-        this.decoder.on("decoded", packet => this.ondecoded(packet));
-        // @ts-expect-error calling private method
-        this.conn.on("data", data => this.ondata(data));
-        // @ts-expect-error calling private method
-        this.conn.on("error", error => this.onerror(error));
-        // @ts-expect-error calling private method
-        this.conn.on("close", (reason, desc) => this.onclose(reason, desc));
+        this.decoder.on("decoded", packet => {
+            debugLogger('CustomSioClient#ondecoded', packet)
+            // @ts-expect-error calling private method
+            this.ondecoded(packet);
+        });
+        this.conn.on("data", data => {
+            debugLogger('CustomSioClient#ondata', data)
+            // @ts-expect-error calling private method
+            this.ondata(data);
+        });
+        this.conn.on("error", error => {
+            debugLogger('CustomSioClient#onerror', error)
+            // @ts-expect-error calling private method
+            this.onerror(error);
+        });
+        this.conn.on("close", (reason, desc) => {
+            debugLogger('CustomSioClient#onclose', reason, desc)
+            // @ts-expect-error calling private method
+            this.onclose(reason, desc);
+        });
         // NOT supported: connectTimeout
     }
 
 }
 
-class CustomSioAdapter extends InMemoryAdapter {
-
-}
