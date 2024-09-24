@@ -11,7 +11,6 @@ import * as forwardEverything from "../app/forward-everything";
 
 const debugLogger = debug('sio-serverless:SocketActor');
 
-declare const self: CF.ServiceWorkerGlobalScope;
 export class SocketActor extends DurableObject<WorkerBindings> implements CF.DurableObject {
 
     fetch(req: CF.Request) {
@@ -40,7 +39,7 @@ export class SocketActor extends DurableObject<WorkerBindings> implements CF.Dur
     }
 
     private readonly sioServer = lazy(() => {
-        const s = new CustomSioServer();
+        const s = new CustomSioServer(this.ctx, this.env);
             s.of(forwardEverything.parentNamespace)
             .on('connection', socket => forwardEverything.onConnection(socket));
         return s
@@ -66,7 +65,7 @@ interface HydratedServerState {
 class CustomSioServer extends SioServer {
     private readonly connStubs = new Map<string, EioSocketStub>()
 
-    constructor(dehydrate?: HydratedServerState) {
+    constructor(private readonly socketActorCtx: CF.DurableObjectState, private readonly socketActorEnv: WorkerBindings, dehydrate?: HydratedServerState, ) {
         debugLogger('CustomSioServer#constructor', dehydrate)
         super(undefined, {
             transports: ['websocket'],
@@ -77,6 +76,17 @@ class CustomSioServer extends SioServer {
             // adapter: TODO,
         },);
         this.restoreState(dehydrate)
+    }
+
+    _sendEioPacket(stub: EioSocketStub, msg: string| Buffer) {
+        debugLogger('CustomSioServer#_sendEioPacket', stub.eioSocketId, msg)
+        const engineActorStub = this.socketActorEnv.engineActor.get(stub.ownerActor)
+        engineActorStub.sendMessage(stub.eioSocketId, msg).then(
+            () => {
+                debugLogger('sent', stub.eioSocketId, msg)
+            }, e => {
+                debugLogger('failed to send', stub.eioSocketId, msg, e)
+        })
     }
 
     /**
@@ -92,7 +102,7 @@ class CustomSioServer extends SioServer {
                 concreteNamespaces.set(n, nsp)
             }
             for (const [socketId, { actorAddr, namespaces }] of s.connections) {
-                const stubConn = new EioSocketStub(socketId, actorAddr, this)
+                const stubConn = this.createEioSocketStub(socketId, actorAddr)
                 this.connStubs.set(socketId, stubConn)
                 const client = new CustomSioClient(this, stubConn)
                 for (const [ns, previousSession] of namespaces) {
@@ -107,12 +117,17 @@ class CustomSioServer extends SioServer {
         }
     }
 
+    createEioSocketStub(socketId: string, actorAddr: CF.DurableObjectId): EioSocketStub {
+        return new EioSocketStub(socketId, actorAddr, this)
+    }
+
     /**
      * replaces onconnection(conn: eio.Socket)
      */
     onEioConnection(conn: EioSocketStub) {
         if (this.connStubs.has(conn.eioSocketId)) {
-            throw new Error(`eio socket ${conn.eioSocketId} already exists`)
+            console.warn(new Error(`eio socket ${conn.eioSocketId} already exists`))
+            return
         }
         this.connStubs.set(conn.eioSocketId, conn)
         new CustomSioClient(this, conn)
@@ -120,14 +135,16 @@ class CustomSioServer extends SioServer {
 
     onEioData(eioSocketId: string, data: any) {
         if (!this.connStubs.has(eioSocketId)) {
-            throw new Error(`eio socket ${eioSocketId} not found`)
+            console.warn(new Error(`eio socket ${eioSocketId} not found`))
+            return
         }
         this.connStubs.get(eioSocketId)!.emit('data', data)
     }
 
     onEioClose(eioSocketId: string, code: number, reason: string) {
         if (!this.connStubs.has(eioSocketId)) {
-            throw new Error(`eio socket ${eioSocketId} not found`)
+            console.warn( new Error(`eio socket ${eioSocketId} not found`))
+            return
         }
         this.connStubs.get(eioSocketId)!.emit('close', reason, `code: ${code}`)
     }
@@ -184,6 +201,7 @@ class EioSocketStub extends EventEmitter {
     }
     write(packet: string | Buffer, opts: unknown) {
         debugLogger('EioSocketStub#write', packet, opts)
+        this.server._sendEioPacket(this, packet)
     }
     close() {
         this.server.closeConn(this)
