@@ -2,6 +2,7 @@ import debugModule from "debug";
 import { AttachOptions, BaseServer, Server } from "./server";
 import { HttpRequest, HttpResponse, TemplatedApp } from "uWebSockets.js";
 import transports from "./transports-uws";
+import {EngineRequest} from "./transport";
 
 const debug = debugModule("engine:uws");
 
@@ -32,7 +33,7 @@ export class uServer extends BaseServer {
    *
    * @private
    */
-  private prepare(req, res: HttpResponse) {
+  private prepare(req: HttpRequest & any, res: HttpResponse) {
     req.method = req.getMethod().toUpperCase();
     req.url = req.getUrl();
 
@@ -53,7 +54,7 @@ export class uServer extends BaseServer {
     });
   }
 
-  protected createTransport(transportName, req) {
+  protected createTransport(transportName: string, req) {
     return new transports[transportName](req);
   }
 
@@ -116,7 +117,7 @@ export class uServer extends BaseServer {
 
   private handleRequest(
     res: HttpResponse,
-    req: HttpRequest & { res: any; _query: any }
+    req: HttpRequest & any
   ) {
     debug('handling "%s" http request "%s"', req.getMethod(), req.getUrl());
     this.prepare(req, res);
@@ -157,7 +158,7 @@ export class uServer extends BaseServer {
 
   private handleUpgrade(
     res: HttpResponse,
-    req: HttpRequest & { res: any; _query: any },
+    req: EngineRequest & any,
     context
   ) {
     debug("on upgrade");

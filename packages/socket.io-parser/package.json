@@ -22,10 +22,11 @@
       "development": "./build/esm-debug/index.js",
       "default": "./build/esm/index.js"
     },
-    "require": "./build/cjs/index.js"
+    "require": "./build/cjs/index.js",
+    "types": "./lib/index.ts"
   },
   "dependencies": {
-    "@socket.io/component-emitter": "~3.1.0",
+    "@socket.io/component-emitter": "workspace:~",
     "debug": "~4.3.1"
   },
   "scripts": {

@@ -256,7 +256,7 @@ export class Socket<
   ) {
     super();
     this.server = nsp.server;
-    this.adapter = this.nsp.adapter;
+    this.adapter = nsp.adapter;
     if (previousSession) {
       this.id = previousSession.sid;
       this.pid = previousSession.pid;

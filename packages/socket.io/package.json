@@ -26,9 +26,12 @@
   "type": "commonjs",
   "main": "./dist/index.js",
   "exports": {
-    "types": "./dist/index.d.ts",
-    "import": "./wrapper.mjs",
-    "require": "./dist/index.js"
+    ".": {
+      "development": "./lib/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./wrapper.mjs",
+      "require": "./dist/index.js"
+    }
   },
   "types": "./dist/index.d.ts",
   "license": "MIT",
@@ -54,9 +57,9 @@
     "base64id": "~2.0.0",
     "cors": "~2.8.5",
     "debug": "~4.3.2",
-    "engine.io": "~6.6.0",
-    "socket.io-adapter": "~2.5.2",
-    "socket.io-parser": "~4.2.4"
+    "engine.io": "workspace:~",
+    "socket.io-adapter": "workspace:~",
+    "socket.io-parser": "workspace:~"
   },
   "contributors": [
     {

@@ -6,6 +6,7 @@ import type {
 } from "./in-memory-adapter";
 import { debug as debugModule } from "debug";
 import { randomBytes } from "crypto";
+import type {Packet} from 'socket.io-parser/lib'
 
 const debug = debugModule("socket.io-adapter");
 const EMITTER_UID = "emitter";
@@ -101,7 +102,7 @@ export type ClusterMessage = {
       type: MessageType.SERVER_SIDE_EMIT;
       data: {
         requestId?: string;
-        packet: any[];
+        packet: [string, ...any[]];
       };
     }
 );
@@ -451,10 +452,11 @@ export abstract class ClusterAdapter extends Adapter {
    * @private
    */
   private addOffsetIfNecessary(
-    packet: any,
+    packet: Packet,
     opts: BroadcastOptions,
     offset: Offset
   ) {
+    // @ts-expect-error use of private
     if (!this.nsp.server.opts.connectionStateRecovery) {
       return;
     }
@@ -609,7 +611,7 @@ export abstract class ClusterAdapter extends Adapter {
     });
   }
 
-  override async serverSideEmit(packet: any[]) {
+  override async serverSideEmit(packet: [string, ...any[]]) {
     const withAck = typeof packet[packet.length - 1] === "function";
 
     if (!withAck) {
@@ -828,7 +830,7 @@ export abstract class ClusterAdapterWithHeartbeat extends ClusterAdapter {
     return super.publish(message);
   }
 
-  override async serverSideEmit(packet: any[]) {
+  override async serverSideEmit(packet: [string, ...any[]]) {
     const withAck = typeof packet[packet.length - 1] === "function";
 
     if (!withAck) {

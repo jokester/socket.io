@@ -318,7 +318,7 @@ export class SocketWithoutUpgrade extends Emitter<
   private _pingTimeout: number = -1;
   private _maxPayload?: number = -1;
   private _pingTimeoutTimer: NodeJS.Timer;
-  private clearTimeoutFn: typeof clearTimeout;
+  private clearTimeoutFn: (timer: undefined | NodeJS.Timer | number) => void;
   private readonly _beforeunloadEventListener: () => void;
   private readonly _offlineEventListener: () => void;
 

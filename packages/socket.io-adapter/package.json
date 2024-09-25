@@ -15,10 +15,19 @@
   ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "development": "./lib/index.ts",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "description": "default socket.io in-memory adapter",
   "dependencies": {
     "debug": "~4.3.4",
     "ws": "~8.17.1"
+  },
+  "peerDependencies": {
+    "socket.io": "workspace:~"
   },
   "scripts": {
     "compile": "rimraf ./dist && tsc",
