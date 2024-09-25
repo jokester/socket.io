@@ -2,8 +2,8 @@ const enabledPrefixes = [
   // 'engine', 'socket',
   // 'sio-worker',
   // 'sio-serverless',
-  'socket',
-  'limb:',
+  // 'socket',
+  // 'limb:',
   'sio-serverless'
 ]
 

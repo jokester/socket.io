@@ -42,7 +42,7 @@ export class EngineActor extends DurableObject<WorkerBindings> implements CF.Dur
 
     // @ts-ignore
     private readonly honoApp = lazy(() => createHandler(this, this.ctx, this.env))
-    readonly _transports = new DefaultMap<string, CustomSocket>((sessionId) => {
+    readonly _transports = new DefaultMap<string, CustomEioSocket>((sessionId) => {
         const tag = `sid:${sessionId}`
 
         const ws = this._ctx.getWebSockets(tag)
@@ -52,8 +52,8 @@ export class EngineActor extends DurableObject<WorkerBindings> implements CF.Dur
         debugLogger('revived transport/eio.socket for sid', sessionId)
         // FIXME: when reviving , should not send message like
         // 0{"sid":"d6d2b73e9b","upgrades":[],"pingInterval":20000,"pingTimeout":25000}
-        const transport = CustomTransport.create(ws[0]!)
-        return CustomSocket.create(this, sessionId, transport)
+        const transport = CustomEioWebsocketTransport.create(ws[0]!)
+        return CustomEioSocket.create(this, sessionId, transport)
     })
 
     webSocketMessage(ws: CF.WebSocket, message: string | ArrayBuffer): void | Promise<void> {
@@ -86,10 +86,15 @@ export class EngineActor extends DurableObject<WorkerBindings> implements CF.Dur
         socket.onCfError('error', String(error))
     }
 
+    /**
+     * called by SocketActor which thinks it's writing to eio.Socket
+     * @param eiOSocketId
+     * @param message
+     */
     sendMessage(eiOSocketId: string, message: string | Buffer) {
         debugLogger('EngineActor#sendMessage', eiOSocketId, message)
         const dest = this._transports.getOrCreate(eiOSocketId)
-        dest._transport._stubWs.send(message)
+        dest.write(message);
     }
 
     get _env(): WorkerBindings {
@@ -158,8 +163,8 @@ function createHandler(actor: EngineActor, actorCtx: CF.DurableObjectState, acto
             actorCtx.acceptWebSocket(serverSocket, tags);
             // serverSocket.send('hello')
             // const socket = actor._transports.getOrCreate(sid)
-            const transport = CustomTransport.create(serverSocket);
-            const eioSocket = CustomSocket.create(actor, sid, transport);
+            const transport = CustomEioWebsocketTransport.create(serverSocket);
+            const eioSocket = CustomEioSocket.create(actor, sid, transport);
 
             debugLogger('created transport for sid', sid)
             actor._transports.set(sid, eioSocket)
@@ -172,7 +177,7 @@ function createHandler(actor: EngineActor, actorCtx: CF.DurableObjectState, acto
         })
 }
 
-class CustomTransport extends EioWebSocketTransport {
+class CustomEioWebsocketTransport extends EioWebSocketTransport {
     constructor(readonly _stubWs: StubWsWebSocket, stubReq: eio.EngineRequest) {
         super(stubReq);
     }
@@ -181,11 +186,11 @@ class CustomTransport extends EioWebSocketTransport {
         return this.socket;
     }
 
-    static create(cfWebSocket: CF.WebSocket): CustomTransport {
+    static create(cfWebSocket: CF.WebSocket): CustomEioWebsocketTransport {
         const stubWebSocket = StubWsWebSocket.create(cfWebSocket);
         const stubReq = createStubRequest(stubWebSocket);
-        const transport = new CustomTransport(stubWebSocket, stubReq);
-        debugLogger('sio-serverless:CustomTransport created')
+        const transport = new CustomEioWebsocketTransport(stubWebSocket, stubReq);
+        debugLogger('sio-serverless:CustomEioWebsocketTransport created')
         return transport;
     }
 }
@@ -199,14 +204,14 @@ interface SocketMeta {
  * - error
  * - close
  */
-export class CustomSocket extends EioSocket {
-    static create(eioActor: EngineActor, sid: string, transport: CustomTransport): CustomSocket {
-        return new CustomSocket(eioActor, sid, transport);
+export class CustomEioSocket extends EioSocket {
+    static create(eioActor: EngineActor, sid: string, transport: CustomEioWebsocketTransport): CustomEioSocket {
+        return new CustomEioSocket(eioActor, sid, transport);
     }
 
     private _setupDone = false;
 
-    constructor(private readonly eioActor: EngineActor, private readonly _sid: string, readonly _transport: CustomTransport) {
+    constructor(private readonly eioActor: EngineActor, private readonly _sid: string, readonly _transport: CustomEioWebsocketTransport) {
         super(_sid, createStubEioServer(), _transport, null, 4);
     }
 
@@ -229,12 +234,29 @@ export class CustomSocket extends EioSocket {
         this._setupDone = true
     }
 
-    schedulePing() { /* noop to prevent 'window' NPE FIXME should work around better */
+    schedulePing() {
+        // rewrite to work with CF worker 'timer' polyfill
+        // (this removes ping timeout detection on server side)
+        this.pingTimeoutTimer = {
+            refresh() {}
+        }
+        this.pingIntervalTimer = {
+            refresh() {}
+        }
+    }
+
+    resetPingTimeout() {
+        // emptied to fit `schedulePing` change
+    }
+
+    onPingAlarmTick() {
+        // instead of setTimeout, trigger server-sent ping with alarm
+        // TODO: connect alarm
         this.sendPacket('ping')
     }
 
     onCfClose() {
-        (this.transport as CustomTransport)._socket.emit('close');
+        (this.transport as CustomEioWebsocketTransport)._socket.emit('close');
     }
 
     onCfMessage(msg: string | Buffer) {
@@ -246,6 +268,7 @@ export class CustomSocket extends EioSocket {
     onCfError(msg: string, desc?: string) {
         (this.transport as EioWebSocket)._socket.emit('error', new Error(msg));
     }
+
 }
 
 class StubWsWebSocket extends EventEmitter {
@@ -264,7 +287,7 @@ class StubWsWebSocket extends EventEmitter {
 
     send(
         data: string | Buffer,
-        _opts?: unknown,
+        // _opts?: unknown,
         _callback?: (error?: any) => void
     ) {
         try {
