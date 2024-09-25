@@ -308,9 +308,13 @@ class StubWsWebSocket extends EventEmitter {
 function createStubEioServer() {
     const server = new EventEmitter();
     Object.assign(server, {
+        /**
+         * NOTE the message containing this is not sent to client
+         * but this may do no harm
+         */
         opts: {
-            pingInterval: 200000,
-            pingTimeout: 250000,
+            pingInterval: 10_000,
+            pingTimeout: 20_000,
         } as eio.ServerOptions,
         upgrades: () => [],
     });
