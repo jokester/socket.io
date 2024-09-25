@@ -92,7 +92,7 @@ export class EngineActor extends DurableObject<WorkerBindings> implements CF.Dur
         dest._transport._stubWs.send(message)
     }
 
-    get _env() {
+    get _env(): WorkerBindings {
         // @ts-ignore
         return this.env as WorkerBindings
     }

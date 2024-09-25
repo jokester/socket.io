@@ -1,12 +1,12 @@
 import type * as CF from '@cloudflare/workers-types';
-import { DurableObject } from "cloudflare:workers";
-import { Server as SioServer, Namespace, Socket } from 'socket.io/lib/index';
-import { Client as SioClient } from 'socket.io/lib/client';
-import { InMemoryAdapter } from 'socket.io-adapter/lib'
-import type { WorkerBindings } from "./workerApp";
+import {DurableObject} from "cloudflare:workers";
+import {Server as SioServer, Namespace, Socket} from 'socket.io/lib/index';
+import {Client as SioClient} from 'socket.io/lib/client';
+import {InMemoryAdapter} from 'socket.io-adapter/lib'
+import type {WorkerBindings} from "./workerApp";
 import debug from 'debug'
-import { lazy } from "@jokester/socket.io-serverless/src/utils/lazy";
-import { EventEmitter } from "events";
+import {lazy} from "@jokester/socket.io-serverless/src/utils/lazy";
+import {EventEmitter} from "events";
 import * as forwardEverything from "../app/forward-everything";
 
 const debugLogger = debug('sio-serverless:SocketActor');
@@ -22,6 +22,7 @@ export class SocketActor extends DurableObject<WorkerBindings> implements CF.Dur
         const stubConn = new EioSocketStub(socketId, actorAddr, this.sioServer.value)
         this.sioServer.value.onEioConnection(stubConn)
     }
+
     onEioSocketData(actorAddr: CF.DurableObjectId, socketId: string, data: unknown) {
         debugLogger('SocketActor#onEioSocketData', actorAddr, socketId, data)
         // throw new Error('Method not implemented.');
@@ -38,9 +39,19 @@ export class SocketActor extends DurableObject<WorkerBindings> implements CF.Dur
         this.sioServer.value.onEioError(socketId, error)
     }
 
+    get _env(): WorkerBindings {
+        // @ts-ignore
+        return this.env as WorkerBindings
+    }
+
+    get _ctx(): CF.DurableObjectState {
+        // @ts-ignore
+        return this.ctx
+    }
+
     private readonly sioServer = lazy(() => {
-        const s = new CustomSioServer(this.ctx, this.env);
-            s.of(forwardEverything.parentNamespace)
+        const s = new CustomSioServer(this._ctx, this._env);
+        s.of(forwardEverything.parentNamespace)
             .on('connection', socket => forwardEverything.onConnection(socket));
         return s
     })
@@ -65,7 +76,7 @@ interface HydratedServerState {
 class CustomSioServer extends SioServer {
     private readonly connStubs = new Map<string, EioSocketStub>()
 
-    constructor(private readonly socketActorCtx: CF.DurableObjectState, private readonly socketActorEnv: WorkerBindings, dehydrate?: HydratedServerState, ) {
+    constructor(private readonly socketActorCtx: CF.DurableObjectState, private readonly socketActorEnv: WorkerBindings, dehydrate?: HydratedServerState,) {
         debugLogger('CustomSioServer#constructor', dehydrate)
         super(undefined, {
             transports: ['websocket'],
@@ -78,15 +89,20 @@ class CustomSioServer extends SioServer {
         this.restoreState(dehydrate)
     }
 
-    _sendEioPacket(stub: EioSocketStub, msg: string| Buffer) {
-        debugLogger('CustomSioServer#_sendEioPacket', stub.eioSocketId, msg)
-        const engineActorStub = this.socketActorEnv.engineActor.get(stub.ownerActor)
+    _sendEioPacket(stub: EioSocketStub, msg: string | Buffer) {
+        /**
+         * NOTE the ownerActor received from RPC may be unusable as a DO id
+         */
+        const destId = this.socketActorEnv.engineActor.idFromString(stub.ownerActor.toString())
+        debugLogger('CustomSioServer#_sendEioPacket', destId, stub.eioSocketId, msg)
+        const engineActorStub = this.socketActorEnv.engineActor.get(destId)
         engineActorStub.sendMessage(stub.eioSocketId, msg).then(
             () => {
                 debugLogger('sent', stub.eioSocketId, msg)
-            }, e => {
+            },
+            e => {
                 debugLogger('failed to send', stub.eioSocketId, msg, e)
-        })
+            })
     }
 
     /**
@@ -101,7 +117,7 @@ class CustomSioServer extends SioServer {
                 const nsp = new Namespace(this, n)
                 concreteNamespaces.set(n, nsp)
             }
-            for (const [socketId, { actorAddr, namespaces }] of s.connections) {
+            for (const [socketId, {actorAddr, namespaces}] of s.connections) {
                 const stubConn = this.createEioSocketStub(socketId, actorAddr)
                 this.connStubs.set(socketId, stubConn)
                 const client = new CustomSioClient(this, stubConn)
@@ -143,7 +159,7 @@ class CustomSioServer extends SioServer {
 
     onEioClose(eioSocketId: string, code: number, reason: string) {
         if (!this.connStubs.has(eioSocketId)) {
-            console.warn( new Error(`eio socket ${eioSocketId} not found`))
+            console.warn(new Error(`eio socket ${eioSocketId} not found`))
             return
         }
         this.connStubs.get(eioSocketId)!.emit('close', reason, `code: ${code}`)
@@ -173,6 +189,7 @@ class EioSocketStub extends EventEmitter {
     constructor(readonly eioSocketId: string, readonly ownerActor: CF.DurableObjectId, readonly server: CustomSioServer) {
         super()
     }
+
     get request(): {} {
         /**
          * queried by
@@ -188,21 +205,26 @@ class EioSocketStub extends EventEmitter {
 
         }
     }
+
     get protocol() {
         return 4
     }
+
     get readyState(): string {
         return 'open'
     }
+
     get transport() {
         return {
             writable: true
         }
     }
+
     write(packet: string | Buffer, opts: unknown) {
         debugLogger('EioSocketStub#write', packet, opts)
         this.server._sendEioPacket(this, packet)
     }
+
     close() {
         this.server.closeConn(this)
     }
