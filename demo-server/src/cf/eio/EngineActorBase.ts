@@ -7,7 +7,7 @@ import {Hono} from "hono";
 import {lazy} from "@jokester/socket.io-serverless/src/utils/lazy";
 import {EngineDelegate} from "./EngineDelegate";
 import {SocketActor} from "../SocketActor";
-import {Socket} from "./Socket";
+import {EioSocket} from "./EioSocket";
 import {WebsocketTransport} from "./WebsocketTransport";
 
 const debugLogger = debugModule('sio-serverless:EngineActorBase');
@@ -96,9 +96,9 @@ export abstract class EngineActorBase<Env = unknown> extends DurableObject<Env> 
     protected abstract recallSocketStateForId(eioSocketId: string): null | EioSocketState;
     // called on incoming client messages
     protected abstract recallSocketStateForConn(ws: CF.WebSocket): null | EioSocketState
-    protected abstract recallSocket(state: EioSocketState): null | Socket;
+    protected abstract recallSocket(state: EioSocketState): null | EioSocket;
 
-    async onNewConnection(eioSocketId: string, serverSocket: CF.WebSocket): Promise<{state: EioSocketState, socket: Socket}> {
+    async onNewConnection(eioSocketId: string, serverSocket: CF.WebSocket): Promise<{state: EioSocketState, socket: EioSocket}> {
         const transport = WebsocketTransport.create(serverSocket);
         const sioActorStub = this.getSocketActorStub(eioSocketId)
         const newSocketState: EioSocketState = {
@@ -106,7 +106,7 @@ export abstract class EngineActorBase<Env = unknown> extends DurableObject<Env> 
             eioSocketId,
             socketActorStub: sioActorStub,
         }
-        const eioSocket = new Socket(newSocketState, transport);
+        const eioSocket = new EioSocket(newSocketState, transport);
 
         await sioActorStub.onEioSocketConnection(newSocketState.eioActorId, eioSocketId)
         return {

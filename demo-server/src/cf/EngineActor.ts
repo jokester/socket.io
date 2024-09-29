@@ -3,7 +3,7 @@ import debug from 'debug'
 import {DefaultEngineDelegate, EngineDelegate} from "./eio/EngineDelegate";
 import {SocketActor} from "./SocketActor";
 import {EioSocketState, EngineActorBase} from "./eio/EngineActorBase";
-import {Socket} from "./eio/Socket";
+import {EioSocket} from "./eio/EioSocket";
 import {WorkerBindings} from "./workerApp";
 
 const debugLogger = debug('sio-serverless:EngineActor');
@@ -42,7 +42,7 @@ export class EngineActor extends EngineActorBase<WorkerBindings> {
         return created
     }
 
-    protected recallSocket(state: EioSocketState): null | Socket {
+    protected recallSocket(state: EioSocketState): null | EioSocket {
         return this.delegate.recallSocket(state)
     }
 }

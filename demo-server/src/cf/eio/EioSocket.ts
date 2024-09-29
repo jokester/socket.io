@@ -27,7 +27,7 @@ function createStubEioServer() {
  * - error
  * - close
  */
-export class Socket extends OrigEioSocket {
+export class EioSocket extends OrigEioSocket {
     constructor(private readonly socketState: EioSocketState, private readonly _transport: WebsocketTransport) {
         super(socketState.eioSocketId, createStubEioServer(), _transport, null, 4);
     }

@@ -4,7 +4,8 @@ const enabledPrefixes = [
   // 'sio-serverless',
   // 'socket',
   // 'limb:',
-  'sio-serverless'
+  // 'sio-serverless'
+  'sio-serverless:sio'
 ]
 
 function enablePrefix(name) {
