@@ -50,7 +50,7 @@ export class SocketActor extends DurableObject<WorkerBindings> implements CF.Dur
     }
 
     private readonly sioServer = lazyThenable(async () => {
-        const s = await createSioServer(this.ctx, this.env.socketActor)
+        const s = await createSioServer(this.ctx, this.env.engineActor)
         await this.setupSioServer(s)
         return s
     })
