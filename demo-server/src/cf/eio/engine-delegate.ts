@@ -1,9 +1,8 @@
 import debugModule from 'debug'
 import type * as CF from '@cloudflare/workers-types';
 import {DefaultMap} from "@jokester/ts-commonutil/lib/collection/default-map";
-import {CustomEioSocket} from "./stub/eio-socket";
-import {CustomEioWebsocketTransport} from "./stub/eio-ws-transport";
-import type {SocketActor} from "./SocketActor";
+import {ServerlessEioSocket} from "./eio.stub/serverless-eio-socket";
+import {EioSocketState} from "./EngineActorBase";
 
 const debugLogger = debugModule('sio-serverless:EngineActorDelegate');
 
@@ -21,12 +20,12 @@ export abstract class EngineDelegate {
      * @param state
      * @param isNewConnection
      */
-    getEioSocket(state: EioSocketState, isNewConnection: boolean): null | CustomEioSocket {
+    getEioSocket(state: EioSocketState, isNewConnection: boolean): null | ServerlessEioSocket {
         // FIXME
         return this._sockets.getOrCreate(state.eioSocketId)
     }
 
-    private readonly _sockets = new DefaultMap<string, CustomEioSocket>((sessionId) => {
+    private readonly _sockets = new DefaultMap<string, ServerlessEioSocket>((sessionId) => {
 
     })
 }
@@ -39,13 +38,3 @@ export interface EngineDelegateState {
 
 }
 
-/**
- * non-serializable state for a WebSocket connection
- * persisted in EngineActor but by EngineDelegate
- */
-export interface EioSocketState {
-    eioActorId: CF.DurableObjectId,
-    eioSocketId: string
-    // @ts-expect-error
-    socketActorStub: CF.DurableObjectStub<SocketActor>
-}

@@ -1,19 +1,19 @@
 import debugModule from 'debug'
 import type * as CF from "@cloudflare/workers-types";
-import {EngineActorBase} from "./engine-actor-base";
+import {EioSocketState, EngineActorBase} from "./EngineActorBase";
 // @ts-ignore
 import {EngineDelegateDefaultImpl} from "./engine-delegate-default-impl";
-import {EngineDelegate, EioSocketState} from "./engine-delegate";
-import {SocketActor} from "./SocketActor";
-import {WorkerBindings} from "./workerApp";
-import {CustomEioSocket} from "./stub/eio-socket";
-import {CustomEioWebsocketTransport} from "./stub/eio-ws-transport";
+import {EngineDelegate} from "./engine-delegate";
+import {SocketActor} from "../SocketActor";
+import {WorkerBindings} from "../workerApp";
+import {Socket} from "./Socket";
+import {WebsocketTransport} from "./WebsocketTransport";
 
 const debugLogger = debugModule('sio-serverless:EngineActorDefaultImpl');
 
 export class EngineActorDefaultImpl extends EngineActorBase<WorkerBindings> {
 
-    protected _liveConnections = new Map<string, CustomEioSocket>()
+    protected _liveConnections = new Map<string, Socket>()
 
     protected getSocketActorStub(sessionId: string):
         // @ts-expect-error
@@ -52,16 +52,19 @@ export class EngineActorDefaultImpl extends EngineActorBase<WorkerBindings> {
         }
     }
 
-    override async onNewConnection(eioSocketId: string, serverSocket: CF.WebSocket): Promise<CustomEioSocket> {
-        const socket = await super.onNewConnection(eioSocketId, serverSocket)
-        this._liveConnections.set(eioSocketId, socket)
-        return socket
+    override async onNewConnection(eioSocketId: string, serverSocket: CF.WebSocket) {
+        const created = await super.onNewConnection(eioSocketId, serverSocket)
+        created.socket.setupOutgoingEvents(created.state)
+        this._liveConnections.set(eioSocketId, created.socket)
+        debugLogger('created new CustomEioSocket', eioSocketId)
+        return created
     }
 
-    protected recallSocket(state: EioSocketState): null | CustomEioSocket {
+    protected recallSocket(state: EioSocketState): null | Socket {
         {
             const alive = this._liveConnections.get(state.eioSocketId)
             if (alive) {
+                debugLogger('found alive CustomEioSocket for sid', state.eioSocketId)
                 return alive
             }
         }
@@ -70,10 +73,13 @@ export class EngineActorDefaultImpl extends EngineActorBase<WorkerBindings> {
         const ws = this._ctx.getWebSockets(tag)
         if (ws.length !== 1) {
             debugLogger(`WARNING no websocket found for sid=${state.eioSocketId}`)
+            return null
         }
-        const transport = CustomEioWebsocketTransport.create(ws[0]!)
+        const transport = WebsocketTransport.create(ws[0]!)
+        const revived = new Socket(state, transport)
+        revived.setupOutgoingEvents(state)
         debugLogger('revived CustomEioSocket for sid', state.eioSocketId)
-        return new CustomEioSocket(state, transport)
+        return revived
     }
 }
 

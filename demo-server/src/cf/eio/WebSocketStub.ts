@@ -8,9 +8,9 @@ const debugLogger = debugModule('engine.io:StubWsWebSocket');
 /**
  * stub for ws.WebSocket
  */
-export class StubWsWebSocket extends EventEmitter {
-    static create(cfWebSocket: CF.WebSocket): WsWebSocket & StubWsWebSocket {
-        return new StubWsWebSocket(cfWebSocket) as any;
+export class WebSocketStub extends EventEmitter {
+    static create(cfWebSocket: CF.WebSocket): WsWebSocket & WebSocketStub {
+        return new WebSocketStub(cfWebSocket) as any;
     }
 
     private constructor(private readonly cfWebSocket: CF.WebSocket) {

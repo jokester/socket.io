@@ -1,19 +1,25 @@
-import type * as CF from '@cloudflare/workers-types';
 // @ts-ignore
 import type * as eio from 'engine.io/lib/engine.io';
 import {EventEmitter} from "events";
 import debugModule from "debug";
-import {
-    type WsWebSocket,
-    // @ts-ignore
-} from 'engine.io/lib/transports/websocket';
-import {CustomEioWebsocketTransport} from "./eio-ws-transport";
-import type {SocketActor} from "../SocketActor";
 // @ts-ignore
-import {Socket as EioSocket} from 'engine.io/lib/socket';
+import {Socket as OrigEioSocket} from 'engine.io/lib/socket';
 import {EioSocketState} from "../engine-delegate";
+import {DurableObjectWebsocketTransport} from "./durable-object-websocket-transport";
 
-const debugLogger = debugModule('engine.io:CustomEioSocket');
+const debugLogger = debugModule('sio-serverless:ServerlessEioSocket');
+
+function createStubEioServer() {
+    const server = new EventEmitter();
+    Object.assign(server, {
+        opts: {
+            pingInterval: 10_000,
+            pingTimeout: 20_000,
+        } as eio.ServerOptions,
+        upgrades: () => [],
+    });
+    return server;
+}
 
 /**
  * A stub that should still emit the following events (used by sio.Client)
@@ -21,19 +27,14 @@ const debugLogger = debugModule('engine.io:CustomEioSocket');
  * - error
  * - close
  */
-export class CustomEioSocket extends EioSocket {
-    constructor(private readonly socketState: EioSocketState, private readonly _transport: CustomEioWebsocketTransport) {
+export class Socket extends OrigEioSocket {
+    constructor(private readonly socketState: EioSocketState, private readonly _transport: DurableObjectWebsocketTransport) {
         super(socketState.eioSocketId, createStubEioServer(), _transport, null, 4);
     }
 
-    get _socket(): WsWebSocket {
-        // @ts-expect-error
-        return this.socket;
-    }
-
-    async setupOutgoingEvents(
+    setupOutgoingEvents(
         socketState: EioSocketState,
-        ) {
+    ) {
         debugLogger('setup outgoing events', socketState.eioSocketId)
         const eioAddr = socketState.eioActorId
 
@@ -83,16 +84,3 @@ export class CustomEioSocket extends EioSocket {
         this._transport._socket.emit('error', new Error(msg)); // this will bubble up and call SocketActor#onEioSocketError
     }
 }
-
-function createStubEioServer() {
-    const server = new EventEmitter();
-    Object.assign(server, {
-        opts: {
-            pingInterval: 10_000,
-            pingTimeout: 20_000,
-        } as eio.ServerOptions,
-        upgrades: () => [],
-    });
-    return server;
-}
-

@@ -1,6 +1,6 @@
 import type * as CF from '@cloudflare/workers-types';
 import debug from 'debug'
-import {EngineActorDefaultImpl} from "./engine-actor-default-impl";
+import {EngineActorDefaultImpl} from "./eio/EngineActorDefaultImpl";
 
 const debugLogger = debug('sio-serverless:EngineActor');
 
@@ -11,20 +11,26 @@ const debugLogger = debug('sio-serverless:EngineActor');
  */
 export class EngineActor extends EngineActorDefaultImpl {
 
-    async webSocketMessage(ws: CF.WebSocket, message: string | ArrayBuffer){
+    webSocketMessage(ws: CF.WebSocket, message: string | ArrayBuffer){
         const socketState = this.recallSocketStateForConn(ws)
         const socket = socketState && this.recallSocket(socketState)
+        debugLogger('EngineActor#webSocketMessage', socketState?.eioSocketId, socket, socket?.constructor)
+        debugLogger('EngineActor#webSocketMessage', message)
         socket?.onCfMessage(message as string)
     }
 
-    async webSocketClose(ws: CF.WebSocket, code: number, reason: string, wasClean: boolean) {
+    webSocketClose(ws: CF.WebSocket, code: number, reason: string, wasClean: boolean) {
         const socketState = this.recallSocketStateForConn(ws)
         const socket = socketState && this.recallSocket(socketState)
+        debugLogger('EngineActor#webSocketClose',socketState?.eioSocketId, socket?.constructor)
+        debugLogger('EngineActor#webSocketClose',code, reason, wasClean)
          socket?.onCfClose(code, reason, wasClean)
     }
-    async webSocketError(ws: CF.WebSocket, error: unknown) {
+    webSocketError(ws: CF.WebSocket, error: unknown) {
         const socketState = this.recallSocketStateForConn(ws)
         const socket = socketState && this.recallSocket(socketState)
+        debugLogger('EngineActor#webSocketError', socketState?.eioSocketId, socket?.constructor)
+        debugLogger('EngineActor#webSocketError', error)
         socket?.onCfError(String(error))
     }
 

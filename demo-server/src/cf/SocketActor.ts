@@ -1,7 +1,11 @@
 import type * as CF from '@cloudflare/workers-types';
+// @ts-expect-error
 import {DurableObject} from "cloudflare:workers";
+// @ts-expect-error
 import {Server as SioServer, Namespace, Socket} from 'socket.io/lib/index';
+// @ts-expect-error
 import {Client as SioClient} from 'socket.io/lib/client';
+// @ts-expect-error
 import {InMemoryAdapter} from 'socket.io-adapter/lib'
 import type {WorkerBindings} from "./workerApp";
 import debug from 'debug'

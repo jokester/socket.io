@@ -4,15 +4,26 @@ import type * as CF from '@cloudflare/workers-types';
 // @ts-ignore
 import {DurableObject} from "cloudflare:workers";
 import {Hono} from "hono";
-import {CustomEioWebsocketTransport} from "./stub/eio-ws-transport";
-import {CustomEioSocket} from "./stub/eio-socket";
 import {lazy} from "@jokester/socket.io-serverless/src/utils/lazy";
-import {EngineDelegate, EioSocketState} from "./engine-delegate";
-import {SocketActor} from "./SocketActor";
+import {EngineDelegate} from "./engine-delegate";
+import {SocketActor} from "../SocketActor";
+import {Socket} from "./Socket";
+import {WebsocketTransport} from "./WebsocketTransport";
 
 const debugLogger = debugModule('sio-serverless:EngineActorBase');
 
 declare const self: CF.ServiceWorkerGlobalScope;
+
+/**
+ * non-serializable state for a WebSocket connection
+ * across EngineActor lifecycles they get reconstructed
+ */
+export interface EioSocketState {
+    eioActorId: CF.DurableObjectId,
+    eioSocketId: string
+    // @ts-expect-error
+    socketActorStub: CF.DurableObjectStub<SocketActor>
+}
 
 export abstract class EngineActorBase<Env = unknown> extends DurableObject<Env> implements CF.DurableObject {
     private _delegate: EngineDelegate = null!
@@ -51,20 +62,22 @@ export abstract class EngineActorBase<Env = unknown> extends DurableObject<Env> 
     protected abstract recallSocketStateForId(eioSocketId: string): null | EioSocketState;
     // called on incoming client messages
     protected abstract recallSocketStateForConn(ws: CF.WebSocket): null | EioSocketState
-    protected abstract recallSocket(state: EioSocketState): null | CustomEioSocket;
+    protected abstract recallSocket(state: EioSocketState): null | Socket;
 
-    async onNewConnection(eioSocketId: string, serverSocket: CF.WebSocket): Promise<CustomEioSocket> {
-        const transport = CustomEioWebsocketTransport.create(serverSocket);
+    async onNewConnection(eioSocketId: string, serverSocket: CF.WebSocket): Promise<{state: EioSocketState, socket: Socket}> {
+        const transport = WebsocketTransport.create(serverSocket);
         const sioActorStub = this.getSocketActorStub(eioSocketId)
         const newSocketState: EioSocketState = {
             eioActorId: this._ctx.id,
             eioSocketId,
             socketActorStub: sioActorStub,
         }
-        const eioSocket = new CustomEioSocket(newSocketState, transport);
+        const eioSocket = new Socket(newSocketState, transport);
 
         await sioActorStub.onEioSocketConnection(newSocketState.eioActorId, eioSocketId)
-        return eioSocket
+        return {
+            state: newSocketState, socket: eioSocket
+        }
     }
 
     private readonly honoApp = lazy(() => createHandler(this, this._ctx))
@@ -95,8 +108,8 @@ function createHandler(actor: EngineActorBase, actorCtx: CF.DurableObjectState) 
 
             const sid = socketId
             const tags = [`sid:${sid}`];
-            await actor.onNewConnection(sid, serverSocket)
             actorCtx.acceptWebSocket(serverSocket, tags);
+            await actor.onNewConnection(sid, serverSocket)
             return new self.Response(null, {status: 101, webSocket: clientSocket});
         })
 }
