@@ -9,14 +9,12 @@ import {EventEmitter} from "events";
 // @ts-ignore
 import {DurableObject} from "cloudflare:workers";
 // @ts-ignore
-import {WebSocket as EioWebSocketTransport} from 'engine.io/lib/transports/websocket';
-// @ts-ignore
 import {Socket as EioSocket} from 'engine.io/lib/socket'
 import {EioWebSocket} from "@jokester/socket.io-serverless/src/EngineStub";
 import {DefaultMap} from "@jokester/ts-commonutil/lib/collection/default-map";
 import debug from 'debug'
 import {SocketActor} from "./SocketActor";
-import {StubWsWebSocket} from "./stub/eio-ws";
+import {CustomEioWebsocketTransport} from "./stub/eio-ws-transport";
 // import {EioSocket, EioWebSocket} from "@jokester/socket.io-serverless/src/EngineStub";
 
 const debugLogger = debug('sio-serverless:EngineActor');
@@ -178,27 +176,6 @@ function createHandler(actor: EngineActor, actorCtx: CF.DurableObjectState, acto
         })
 }
 
-class CustomEioWebsocketTransport extends EioWebSocketTransport {
-    constructor(readonly _stubWs: StubWsWebSocket, stubReq: eio.EngineRequest) {
-        super(stubReq);
-    }
-    get _socket() {
-        // @ts-expect-error use of private
-        return this.socket;
-    }
-
-    static create(cfWebSocket: CF.WebSocket): CustomEioWebsocketTransport {
-        const stubWebSocket = StubWsWebSocket.create(cfWebSocket);
-        const stubReq = createStubRequest(stubWebSocket);
-        const transport = new CustomEioWebsocketTransport(stubWebSocket, stubReq);
-        debugLogger('sio-serverless:CustomEioWebsocketTransport created')
-        return transport;
-    }
-}
-
-interface SocketMeta {
-
-}
 /**
  * A stub that should still emit the following events (used by sio.Client)
  * - data
@@ -287,18 +264,5 @@ function createStubEioServer() {
         upgrades: () => [],
     });
     return server;
-}
-
-function createStubRequest(
-    websocket: WsWebSocket
-): eio.EngineRequest {
-    return {
-        // @ts-expect-error
-        _query: {
-            sid: '',
-            EIO: '4',
-        },
-        websocket,
-    };
 }
 
