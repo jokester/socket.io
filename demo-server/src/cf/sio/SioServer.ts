@@ -1,34 +1,28 @@
 // @ts-ignore
-import type {Namespace, Socket} from 'socket.io/lib/index';
+import type {Namespace} from 'socket.io/lib/index';
 // @ts-expect-error
-import {Server as OrigSioServer} from 'socket.io/lib/index';
+import {Server as OrigSioServer, Socket} from 'socket.io/lib/index';
 import type * as CF from "@cloudflare/workers-types";
 import debugModule from "debug";
 import {EioSocketStub} from "./EioSocketStub";
 import {SioClient} from "./Client";
 import {EngineActorBase} from "../eio/EngineActorBase";
+import type * as sio from 'socket.io'
+import {Persister} from "./Persister";
 
 const debugLogger = debugModule('sio-serverless:sio:Server');
-
-/**
- * Serializable state for CustomSioServer to rebuild state working after hibernation
- */
-export interface ConnectionState {
-    connections: Map</* eio.socketId */string,
-        {
-            actorAddr: CF.DurableObjectId, namespaces: Map</* concreteNsp.name */string,
-                { id: string, rooms: string[], missedPackets: [], data: {} }>
-        }>
-}
 
 export class SioServer extends OrigSioServer {
     private readonly connStubs = new Map<string, EioSocketStub>()
 
-    constructor(private readonly socketActorCtx: CF.DurableObjectState, private readonly engineActorNs: CF.DurableObjectNamespace<EngineActorBase>,
-                private readonly onStateChange: (eioSocketId: string, x: ConnectionState) => void,
+    constructor(
+        options: Partial<sio.ServerOptions>,
+        private readonly socketActorCtx: CF.DurableObjectState, private readonly engineActorNs: CF.DurableObjectNamespace<EngineActorBase>,
+                private readonly persister: Persister
                 ) {
         debugLogger('CustomSioServer#constructor')
         super(undefined, {
+            ...options,
             transports: ['websocket'],
             allowEIO3: false,
             serveClient: false,
@@ -54,38 +48,47 @@ export class SioServer extends OrigSioServer {
             })
     }
 
-    /**
-     * replaces bind / initEngine / attach /
-     * @param s
-     * @private
-     */
-    private restoreState(s?: HydratedServerState) {
-        if (s) {
-            const concreteNamespaces = new Map<string, Namespace>()
-            for (const n of s.concreteNamespaces) {
-                const nsp = new Namespace(this, n)
-                concreteNamespaces.set(n, nsp)
-            }
-            for (const [socketId, {actorAddr, namespaces}] of s.connections) {
-                const stubConn = this.createEioSocketStub(socketId, actorAddr)
-                this.connStubs.set(socketId, stubConn)
-                const client = new CustomSioClient(this, stubConn)
-                for (const [ns, previousSession] of namespaces) {
-                    const nsp = concreteNamespaces.get(ns)
-                    if (!nsp) {
-                        throw new Error(`namespace ${ns} not found`)
-                    }
-                    const socket = new Socket(nsp, client, {}, previousSession)
-                }
-            }
-            // TODO: more
+    async restoreState() {
+        const s = await this.persister.loadServerState()
+        for(const nsName of s.concreteNamespaces) {
+            // this will rebuild the namespaces and parentNsp.children
+            this.of(s)
         }
+
+        // FIXME should be batched
+        const clientStates = await this.persister.loadClientStates(s.clientIds)
+
+        clientStates.forEach((clientState, clientId) => {
+            const eioSocketStub = new EioSocketStub(clientId, clientState.engineActorId, this)
+            const client = new SioClient(this, eioSocketStub)
+            clientState.namespaces.forEach((nspState, nspName) => {
+                const nsp = this._nsps.get(nspName)
+                if (!nsp) {
+                    debugLogger('WARNING nsp was referenced but not recreated', nspName)
+                    return
+                }
+
+                const socket = new Socket(nsp, client, {}, {
+                    pid: nspState.socketPid,
+                    id: nspState.socketId,
+                    rooms: nspState.rooms,
+                })
+            })
+
+        })
     }
 
-    createEioSocketStub(socketId: string, actorAddr: CF.DurableObjectId): EioSocketStub {
-        return new EioSocketStub(socketId, actorAddr, this)
+    of(
+        name: unknown,
+        fn?: (
+            socket: Socket<ListenEvents, EmitEvents, ServerSideEvents, SocketData>
+        ) => void
+    ): Namespace {
+        if (typeof name === 'function') {
+            throw new TypeError('Defining parent namespace with function is not supported')
+        }
+        return super.of(name, fn)
     }
-
     /**
      * replaces onconnection(conn: eio.Socket)
      */

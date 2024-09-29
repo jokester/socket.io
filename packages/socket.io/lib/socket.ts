@@ -188,6 +188,7 @@ export class Socket<
 > {
   /**
    * An unique identifier for the session.
+   * randomly generated OR set from previous session
    */
   public readonly id: SocketId;
   /**

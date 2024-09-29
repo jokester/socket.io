@@ -156,6 +156,9 @@ export class Server<
     SocketData
   >
 > {
+  /**
+   * the default concrete namespace
+   */
   public readonly sockets: Namespace<
     ListenEvents,
     EmitEvents,
@@ -738,11 +741,13 @@ export class Server<
       return parentNsp;
     }
 
+    // otherwise, create a concrete namespace
     if (name[0] !== "/") name = "/" + name;
 
     let nsp = this._nsps.get(name);
     if (!nsp) {
       for (const [regex, parentNamespace] of this.parentNamespacesFromRegExp) {
+        // create with matched regex parent NS
         if (regex.test(name)) {
           debug("attaching namespace %s to parent namespace %s", name, regex);
           return parentNamespace.createChild(name as string);
@@ -1117,8 +1122,9 @@ const emitterMethods = Object.keys(EventEmitter.prototype).filter(function (
   return typeof EventEmitter.prototype[key] === "function";
 });
 
-emitterMethods.forEach(function (fn) {
-  Server.prototype[fn] = function () {
+emitterMethods.forEach(function (fn: string) {
+  // delegate EventEmitter methods to the default root Namespace
+  Server.prototype[fn] = function (this: Server) {
     return this.sockets[fn].apply(this.sockets, arguments);
   };
 });

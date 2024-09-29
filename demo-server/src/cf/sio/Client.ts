@@ -13,8 +13,8 @@ export class SioClient extends OrigSioClient {
         debugLogger('CustomSioClient#constructor', conn.eioSocketId)
     }
 
-    /** rewrites SioClient#setup() */
-    setup() {
+    /** rewrites OrigSioClient#setup() */
+    protected setup() {
         this.decoder.on("decoded", packet => {
             debugLogger('CustomSioClient#ondecoded', packet)
             // @ts-expect-error calling private method

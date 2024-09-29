@@ -36,6 +36,9 @@ export class Client<
 > {
   public readonly conn: RawSocket;
 
+  /**
+   * set from eioSocket.id
+   */
   private readonly id: string;
   private readonly server: Server<
     ListenEvents,

@@ -467,6 +467,7 @@ export class SessionAwareAdapter extends Adapter {
       session.disconnectedAt + this.maxDisconnectionDuration < Date.now();
     if (hasExpired) {
       // the session has expired
+      // XXX if this is never called, will the session be removed?
       this.sessions.delete(pid);
       return null;
     }

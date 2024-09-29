@@ -130,6 +130,9 @@ export class Namespace<
   >
 > {
   public readonly name: string;
+  /**
+   * sio.Socket#id => Socket
+   */
   public readonly sockets: Map<
     SocketId,
     Socket<ListenEvents, EmitEvents, ServerSideEvents, SocketData>
@@ -383,6 +386,9 @@ export class Namespace<
     return new Socket(this, client, auth);
   }
 
+  /**
+   * when a Socket passes middlewares
+   */
   private _doConnect(
     socket: Socket<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
     fn: (
