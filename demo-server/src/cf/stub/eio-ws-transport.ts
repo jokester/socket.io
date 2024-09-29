@@ -33,7 +33,7 @@ function createStubRequest(
     return {
         // @ts-expect-error
         _query: {
-            sid: '',
+            sid: 'TODO',
             EIO: '4',
         },
         websocket,
