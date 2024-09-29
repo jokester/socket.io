@@ -16,6 +16,7 @@ import {EioWebSocket} from "@jokester/socket.io-serverless/src/EngineStub";
 import {DefaultMap} from "@jokester/ts-commonutil/lib/collection/default-map";
 import debug from 'debug'
 import {SocketActor} from "./SocketActor";
+import {StubWsWebSocket} from "./stub/eio-ws";
 // import {EioSocket, EioWebSocket} from "@jokester/socket.io-serverless/src/EngineStub";
 
 const debugLogger = debug('sio-serverless:EngineActor');
@@ -271,39 +272,6 @@ export class CustomEioSocket extends EioSocket {
 
 }
 
-class StubWsWebSocket extends EventEmitter {
-    static create(cfWebSocket: CF.WebSocket): WsWebSocket & StubWsWebSocket {
-        return new StubWsWebSocket(cfWebSocket) as any;
-    }
-    constructor(private readonly cfWebSocket: CF.WebSocket) {
-        super();
-    }
-
-    get _socket() {
-        return {
-            remoteAddress: 'FIXME: 127.0.0.1',
-        }
-    }
-
-    send(
-        data: string | Buffer,
-        // _opts?: unknown,
-        _callback?: (error?: any) => void
-    ) {
-        try {
-            this.cfWebSocket.send(data);
-            debugLogger('StubWsWebSocket.send', data);
-            _callback?.();
-        } catch (e: any) {
-            debugLogger('StubWsWebSocket.send error', data, e);
-            _callback?.(e);
-        }
-    }
-    close() {
-        this.cfWebSocket.close()
-    }
-
-}
 
 function createStubEioServer() {
     const server = new EventEmitter();
