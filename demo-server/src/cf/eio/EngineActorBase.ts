@@ -1,11 +1,11 @@
 import debugModule from 'debug'
 import type * as CF from '@cloudflare/workers-types';
 
-// @ts-ignore
+// @ts-expect-error
 import {DurableObject} from "cloudflare:workers";
 import {Hono} from "hono";
 import {lazy} from "@jokester/socket.io-serverless/src/utils/lazy";
-import {EngineDelegate} from "./engine-delegate";
+import {EngineDelegate} from "./EngineDelegate";
 import {SocketActor} from "../SocketActor";
 import {Socket} from "./Socket";
 import {WebsocketTransport} from "./WebsocketTransport";
@@ -26,33 +26,67 @@ export interface EioSocketState {
 }
 
 export abstract class EngineActorBase<Env = unknown> extends DurableObject<Env> implements CF.DurableObject {
-    private _delegate: EngineDelegate = null!
+    /**
+     * webSocket* : called by CF runtime
+     */
+    webSocketMessage(ws: CF.WebSocket, message: string | ArrayBuffer){
+        const socketState = this.recallSocketStateForConn(ws)
+        const socket = socketState && this.recallSocket(socketState)
+        debugLogger('EngineActor#webSocketMessage', socketState?.eioSocketId, socket, socket?.constructor)
+        debugLogger('EngineActor#webSocketMessage', message)
+        socket?.onCfMessage(message as string)
+    }
+
+    webSocketClose(ws: CF.WebSocket, code: number, reason: string, wasClean: boolean) {
+        const socketState = this.recallSocketStateForConn(ws)
+        const socket = socketState && this.recallSocket(socketState)
+        debugLogger('EngineActor#webSocketClose',socketState?.eioSocketId, socket?.constructor)
+        debugLogger('EngineActor#webSocketClose',code, reason, wasClean)
+        socket?.onCfClose(code, reason, wasClean)
+    }
+
+    webSocketError(ws: CF.WebSocket, error: unknown) {
+        const socketState = this.recallSocketStateForConn(ws)
+        const socket = socketState && this.recallSocket(socketState)
+        debugLogger('EngineActor#webSocketError', socketState?.eioSocketId, socket?.constructor)
+        debugLogger('EngineActor#webSocketError', error)
+        socket?.onCfError(String(error))
+    }
+
+    /**
+     * called by SocketActor which thinks it's writing to eio.Socket
+     * FIXME should be named 'onServerMessage'
+     */
+    async sendMessage(eioSocketId: string, message: string | Buffer): Promise<boolean> {
+        const socketState = this.recallSocketStateForId(eioSocketId)
+        const socket = socketState && this.recallSocket(socketState)
+        if (!socket) {
+            return false
+        }
+        try {
+            socket.write(message);
+        } catch (e) {
+            debugLogger('EngineActor#sendMessage ERROR', e)
+            return false
+        }
+        return true
+    }
+    protected abstract get delegate(): EngineDelegate
 
     // @ts-ignore
     fetch(request: Request): Response | Promise<Response> {
-        // debugLogger('engineActor.fetch', this, request.url);
-
         return this.honoApp.value.fetch(request)
     }
 
-    getDelegate(): EngineDelegate {
-        if (!this._delegate) {
-            this._delegate = this.createDelegate()
-        }
-        return this._delegate
-    }
-
-    get _ctx(): CF.DurableObjectState {
+    protected get _ctx(): CF.DurableObjectState {
         // @ts-ignore
         return this.ctx
     }
 
-    get _env(): Env {
+    protected get _env(): Env {
         // @ts-ignore
         return this.env
     }
-
-    protected abstract createDelegate(): EngineDelegate;
 
     /**
      * extension point for load-balancing
@@ -83,6 +117,7 @@ export abstract class EngineActorBase<Env = unknown> extends DurableObject<Env> 
     private readonly honoApp = lazy(() => createHandler(this, this._ctx))
 }
 
+// FIXME: drop hono for plain JS
 function createHandler(actor: EngineActorBase, actorCtx: CF.DurableObjectState) {
     return new Hono()
         // @ts-ignore hono.Response is not CF.Response

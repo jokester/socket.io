@@ -1,56 +1,49 @@
 import type * as CF from '@cloudflare/workers-types';
 import debug from 'debug'
-import {EngineActorDefaultImpl} from "./eio/EngineActorDefaultImpl";
+import {DefaultEngineDelegate, EngineDelegate} from "./eio/EngineDelegate";
+import {SocketActor} from "./SocketActor";
+import {EioSocketState, EngineActorBase} from "./eio/EngineActorBase";
+import {Socket} from "./eio/Socket";
+import {WorkerBindings} from "./workerApp";
 
 const debugLogger = debug('sio-serverless:EngineActor');
 
 /**
  * Works in place of a engine.io Server
- * - accepts incoming WebSocket connection
- * - emit eio.Socket
+ * - accepts and keeps WebSocket connection
+ * - forward incoming messages to eio.Socket, via RPC
+ * - forward outgoing messages to clients, via WS
  */
-export class EngineActor extends EngineActorDefaultImpl {
+export class EngineActor extends EngineActorBase<WorkerBindings> {
 
-    webSocketMessage(ws: CF.WebSocket, message: string | ArrayBuffer){
-        const socketState = this.recallSocketStateForConn(ws)
-        const socket = socketState && this.recallSocket(socketState)
-        debugLogger('EngineActor#webSocketMessage', socketState?.eioSocketId, socket, socket?.constructor)
-        debugLogger('EngineActor#webSocketMessage', message)
-        socket?.onCfMessage(message as string)
+    private _delegate?: EngineDelegate
+    protected override get delegate(): EngineDelegate {
+        return this._delegate ??= new DefaultEngineDelegate(this._ctx, this._env.socketActor)
     }
 
-    webSocketClose(ws: CF.WebSocket, code: number, reason: string, wasClean: boolean) {
-        const socketState = this.recallSocketStateForConn(ws)
-        const socket = socketState && this.recallSocket(socketState)
-        debugLogger('EngineActor#webSocketClose',socketState?.eioSocketId, socket?.constructor)
-        debugLogger('EngineActor#webSocketClose',code, reason, wasClean)
-         socket?.onCfClose(code, reason, wasClean)
-    }
-    webSocketError(ws: CF.WebSocket, error: unknown) {
-        const socketState = this.recallSocketStateForConn(ws)
-        const socket = socketState && this.recallSocket(socketState)
-        debugLogger('EngineActor#webSocketError', socketState?.eioSocketId, socket?.constructor)
-        debugLogger('EngineActor#webSocketError', error)
-        socket?.onCfError(String(error))
+    // @ts-expect-error
+    protected getSocketActorStub(sessionId: string): CF.DurableObjectStub<SocketActor> {
+        return this.delegate.getSocketActorStub(sessionId)
     }
 
-    /**
-     * called by SocketActor which thinks it's writing to eio.Socket
-     * FIXME should be named 'onServerMessage'
-     */
-    async sendMessage(eioSocketId: string, message: string | Buffer): Promise<boolean> {
-        const socketState = this.recallSocketStateForId(eioSocketId)
-        const socket = socketState && this.recallSocket(socketState)
-        if (!socket) {
-            return false
-        }
-        try {
-            socket.write(message);
-        } catch (e) {
-            debugLogger('EngineActor#sendMessage ERROR', e)
-            return false
-        }
-        return true
+    protected recallSocketStateForId(eioSocketId: string): null | EioSocketState {
+        return this.delegate.recallSocketStateForId(eioSocketId)
+    }
+
+    protected recallSocketStateForConn(ws: CF.WebSocket): null | EioSocketState {
+        return this.delegate.recallSocketStateForConn(ws)
+    }
+
+    override async onNewConnection(eioSocketId: string, serverSocket: CF.WebSocket) {
+        const created = await super.onNewConnection(eioSocketId, serverSocket)
+        created.socket.setupOutgoingEvents(created.state)
+        this.delegate.onNewSocket(eioSocketId, created.socket)
+        debugLogger('created new CustomEioSocket', eioSocketId)
+        return created
+    }
+
+    protected recallSocket(state: EioSocketState): null | Socket {
+        return this.delegate.recallSocket(state)
     }
 }
 

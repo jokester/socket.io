@@ -4,8 +4,8 @@ import {EventEmitter} from "events";
 import debugModule from "debug";
 // @ts-ignore
 import {Socket as OrigEioSocket} from 'engine.io/lib/socket';
-import {EioSocketState} from "../engine-delegate";
-import {DurableObjectWebsocketTransport} from "./durable-object-websocket-transport";
+import type {EioSocketState} from "./EngineActorBase";
+import {WebsocketTransport} from "./WebsocketTransport";
 
 const debugLogger = debugModule('sio-serverless:ServerlessEioSocket');
 
@@ -28,7 +28,7 @@ function createStubEioServer() {
  * - close
  */
 export class Socket extends OrigEioSocket {
-    constructor(private readonly socketState: EioSocketState, private readonly _transport: DurableObjectWebsocketTransport) {
+    constructor(private readonly socketState: EioSocketState, private readonly _transport: WebsocketTransport) {
         super(socketState.eioSocketId, createStubEioServer(), _transport, null, 4);
     }
 
