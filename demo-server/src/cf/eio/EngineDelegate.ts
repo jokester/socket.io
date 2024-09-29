@@ -29,6 +29,9 @@ export class DefaultEngineDelegate implements EngineDelegate {
     constructor(private readonly _ctx: CF.DurableObjectState, private readonly socketActorNs: CF.DurableObjectNamespace<SocketActor>) {
     }
 
+    /**
+     * @note this can be overridden for load-balancing
+     */
     getSocketActorStub(sessionId: string):
     // @ts-expect-error
         CF.DurableObjectStub<SocketActor> {

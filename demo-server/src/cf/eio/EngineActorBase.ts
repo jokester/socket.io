@@ -32,7 +32,7 @@ export abstract class EngineActorBase<Env = unknown> extends DurableObject<Env> 
     webSocketMessage(ws: CF.WebSocket, message: string | ArrayBuffer){
         const socketState = this.recallSocketStateForConn(ws)
         const socket = socketState && this.recallSocket(socketState)
-        debugLogger('EngineActor#webSocketMessage', socketState?.eioSocketId, socket, socket?.constructor)
+        debugLogger('EngineActor#webSocketMessage', socketState?.eioSocketId, socket?.constructor)
         debugLogger('EngineActor#webSocketMessage', message)
         socket?.onCfMessage(message as string)
     }
