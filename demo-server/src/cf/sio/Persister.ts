@@ -1,4 +1,6 @@
 import type * as CF from '@cloudflare/workers-types';
+import debugModule from "debug";
+const debugLogger = debugModule('sio-serverless:sio:Persister');
 
 interface PersistedSioServerState {
     // TODO: persist this, maybe via nsp events
@@ -18,6 +20,9 @@ interface PersistedSioClientState {
         rooms: string[]
     }>
 }
+
+const KEY_GLOBAL_STATE = '_sio_server_state_'
+const KEY_PREFIX_CONN_STATE = '_sio_server_state_'
 
 export class Persister {
 

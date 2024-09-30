@@ -97,7 +97,10 @@ function usePageState(namespace: string): PageState {
           ),
         }));
       }
-    }, 2e3);
+    },
+        // 2e3, //
+        15e3, // causes SioActor to hibernate
+        );
 
     return () => {
       clearInterval(timer);

@@ -52,7 +52,7 @@ export class SioServer extends OrigSioServer {
         const s = await this.persister.loadServerState()
         for(const nsName of s.concreteNamespaces) {
             // this will rebuild the namespaces and parentNsp.children
-            this.of(s)
+            this.of(nsName)
         }
 
         // FIXME should be batched
@@ -79,7 +79,7 @@ export class SioServer extends OrigSioServer {
     }
 
     of(
-        name: unknown,
+        name: string | RegExp | Function,
         fn?: (
             socket: Socket<ListenEvents, EmitEvents, ServerSideEvents, SocketData>
         ) => void
