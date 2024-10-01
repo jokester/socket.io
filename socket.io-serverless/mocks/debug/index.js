@@ -7,6 +7,7 @@ const enabledPrefixes = [
   // 'sio-serverless'
   'sio-serverless:sio:Single',
   'sio-serverless:sio:Server',
+  'sio-serverless:sio:Persister',
 ]
 
 function enablePrefix(name) {

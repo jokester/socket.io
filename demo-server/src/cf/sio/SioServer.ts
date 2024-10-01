@@ -50,19 +50,27 @@ export class SioServer extends OrigSioServer {
 
     async restoreState() {
         const s = await this.persister.loadServerState()
+        debugLogger('restore server state', s)
+        const recoveredNsps = new Map<string, Namespace>()
         for(const nsName of s.concreteNamespaces) {
-            // this will rebuild the namespaces and parentNsp.children
-            this.of(nsName)
+            if (nsName == '/') {
+                // root ns is created by default
+                continue
+            }
+            // this will rebuild the namespaces, and (when name matches) add them to parentNsp.children
+            debugLogger('recreating namespace', nsName)
+            recoveredNsps.set(nsName, this.of(nsName))
         }
 
         // FIXME should be batched
         const clientStates = await this.persister.loadClientStates(s.clientIds)
 
         clientStates.forEach((clientState, clientId) => {
-            const eioSocketStub = new EioSocketStub(clientId, clientState.engineActorId, this)
-            const client = new SioClient(this, eioSocketStub)
+            const conn = new EioSocketStub(clientId, clientState.engineActorId, this)
+            this.connStubs.set(conn.eioSocketId, conn)
+            const client = new SioClient(this, conn)
             clientState.namespaces.forEach((nspState, nspName) => {
-                const nsp = this._nsps.get(nspName)
+                const nsp = recoveredNsps.get(nspName)
                 if (!nsp) {
                     debugLogger('WARNING nsp was referenced but not recreated', nspName)
                     return
@@ -74,8 +82,20 @@ export class SioServer extends OrigSioServer {
                     rooms: nspState.rooms,
                 })
             })
-
         })
+
+    }
+
+    startPersisting() {
+        /**
+         * state changes from now on get persisted
+         */
+        this.on('new_namespace', nsp => {
+            const nspNames = [...this._nsps.keys()]
+            this.persister.saveNamespaces(nspNames)
+        })
+
+        // NOTE SioClient creation will only be triggered later
     }
 
     of(
@@ -92,13 +112,14 @@ export class SioServer extends OrigSioServer {
     /**
      * replaces onconnection(conn: eio.Socket)
      */
-    onEioConnection(conn: EioSocketStub) {
+    async onEioConnection(conn: EioSocketStub): Promise<void> {
         if (this.connStubs.has(conn.eioSocketId)) {
             console.warn(new Error(`eio socket ${conn.eioSocketId} already exists`))
             return
         }
         this.connStubs.set(conn.eioSocketId, conn)
         new SioClient(this, conn)
+        await this.persister.onNewClient(conn)
     }
 
     onEioData(eioSocketId: string, data: any) {

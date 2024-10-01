@@ -4,8 +4,6 @@ import {DurableObject} from "cloudflare:workers";
 import type {WorkerBindings} from "./workerApp";
 import debug from 'debug'
 import * as forwardEverything from "../app/forward-everything";
-// @ts-ignore
-import type {Socket} from 'socket.io'
 import {SioServer} from './sio/SioServer'
 import {EioSocketStub} from "./sio/EioSocketStub";
 import {lazyThenable} from "@jokester/ts-commonutil/lib/concurrency/lazy-thenable";
@@ -23,7 +21,7 @@ export class SocketActor extends DurableObject<WorkerBindings> implements CF.Dur
         debugLogger('SocketActor#onEioSocketConnection', actorAddr, socketId)
         const sioServer = await this.sioServer
         const stubConn = new EioSocketStub(socketId, actorAddr, sioServer)
-        sioServer.onEioConnection(stubConn)
+        await sioServer.onEioConnection(stubConn)
     }
 
     async onEioSocketData(actorAddr: CF.DurableObjectId, socketId: string, data: unknown) {
@@ -53,6 +51,7 @@ export class SocketActor extends DurableObject<WorkerBindings> implements CF.Dur
         const s = await createSioServer(this.ctx, this.env.engineActor)
         await this.setupSioServer(s)
         await s.restoreState()
+        s.startPersisting()
         return s
     })
 }
