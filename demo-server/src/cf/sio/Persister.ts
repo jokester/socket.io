@@ -2,6 +2,8 @@ import type * as CF from '@cloudflare/workers-types';
 import debugModule from "debug";
 import {EioSocketStub} from "./EioSocketStub";
 const debugLogger = debugModule('sio-serverless:sio:Persister');
+import type * as sio from 'socket.io'
+import {SioClient} from "./Client";
 
 interface PersistedSioServerState1 {
     concreteNamespaces: string[]
@@ -32,7 +34,12 @@ export class Persister {
     constructor(private readonly sioCtx: CF.DurableObjectState) {
     }
 
+    async DEV_resetState() {
+        await this.sioCtx.storage.deleteAll();
+    }
+
     async loadServerState(): Promise<PersistedSioServerState1 & PersistedSioServerState2> {
+        // await this.DEV_resetState();
         const s1 = await this.sioCtx.storage.get<PersistedSioServerState1>(KEY_GLOBAL_STATE_NAMESPACES)
         const s2 = await this.sioCtx.storage.get<PersistedSioServerState2>(KEY_GLOBAL_STATE_CLIENTS)
 
@@ -83,6 +90,24 @@ export class Persister {
             prev?.clientIds.delete(stub.eioSocketId)
             return prev
         })
+    }
+
+    async onNewSocket(socket: sio.Socket) {
+        const clientId = (socket.client as SioClient).conn.eioSocketId
+        debugLogger('onNewSocket', clientId, socket.nsp.name)
+
+        await this.replaceClientState(clientId, prev => {
+            prev!.namespaces.set(
+                socket.nsp.name,
+                {
+                    socketId: socket.id,
+                    socketPid: socket.pid,
+                    rooms: []
+                }
+            )
+            return prev!
+        })
+
     }
 
     async replaceGlobalState<T>(key: string, f: (prev: T | undefined) => T) {

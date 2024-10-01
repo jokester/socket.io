@@ -8,7 +8,7 @@ const debugLogger = debugModule('sio-serverless:sio:Client');
  * Not supported: connectTimeout
  */
 export class SioClient extends OrigSioClient {
-    constructor(private readonly server: SioServer, private readonly conn: EioSocketStub) {
+    constructor(private readonly server: SioServer, readonly conn: EioSocketStub) {
         super(server, conn);
         debugLogger('CustomSioClient#constructor', conn.eioSocketId)
     }
