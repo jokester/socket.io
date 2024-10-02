@@ -3,7 +3,7 @@ import type * as CF from "@cloudflare/workers-types";
 import type {WebSocket as WsWebSocket} from "ws";
 import debugModule from 'debug';
 
-const debugLogger = debugModule('sio-serverless:eio:StubWsWebSocket');
+const debugLogger = debugModule('sio-serverless:eio:WebSocketStub');
 
 /**
  * stub for ws.WebSocket
@@ -30,10 +30,10 @@ export class WebSocketStub extends EventEmitter {
     ) {
         try {
             this.cfWebSocket.send(data);
-            debugLogger('StubWsWebSocket.send', data);
+            debugLogger('WebSocketStub.send', data);
             _callback?.();
         } catch (e: any) {
-            debugLogger('StubWsWebSocket.send error', data, e);
+            debugLogger('WebSocketStub.send error', data, e);
             _callback?.(e);
         }
     }

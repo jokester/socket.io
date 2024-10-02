@@ -25,9 +25,10 @@ interface PersistedSioClientState {
     }>
 }
 
-const KEY_GLOBAL_STATE_NAMESPACES = '_namespaces'
-const KEY_GLOBAL_STATE_CLIENTS = '_clients'
-const KEY_CLIENT_STATE_PREFIX = '_client_'
+const DEBUG_KEY_PREFIX = '' // '_00002_'
+const KEY_GLOBAL_STATE_NAMESPACES = `${DEBUG_KEY_PREFIX}_namespaces`
+const KEY_GLOBAL_STATE_CLIENTS = `${DEBUG_KEY_PREFIX}_clients`
+const KEY_CLIENT_STATE_PREFIX = `${DEBUG_KEY_PREFIX}_client_`
 
 export class Persister {
 
@@ -58,7 +59,7 @@ export class Persister {
         const realKeys = [...clientIds].map(id => `${KEY_CLIENT_STATE_PREFIX}${id}`)
         // FIXME should prefix the key
         const loaded = await this.sioCtx.storage.get<PersistedSioClientState>(realKeys)
-        debugLogger('loadClientStates', loaded)
+        // debugLogger('loadClientStates raw', loaded)
         const keyRemoved = new Map<string, PersistedSioClientState>()
         for (const [k, v] of loaded) {
             keyRemoved.set(k.slice(KEY_CLIENT_STATE_PREFIX.length), v)

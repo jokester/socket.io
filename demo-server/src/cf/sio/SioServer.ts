@@ -40,8 +40,8 @@ export class SioServer extends OrigSioServer {
         debugLogger('CustomSioServer#_sendEioPacket', destId, stub.eioSocketId, msg)
         const engineActorStub = this.engineActorNs.get(destId)
         engineActorStub.sendMessage(stub.eioSocketId, msg).then(
-            () => {
-                debugLogger('sent', stub.eioSocketId, msg)
+            (sentFromEioActor: boolean) => {
+                debugLogger('sent', stub.eioSocketId, sentFromEioActor, msg)
             },
             e => {
                 debugLogger('failed to send', stub.eioSocketId, msg, e)
@@ -80,8 +80,8 @@ export class SioServer extends OrigSioServer {
 
                 // replay Namespace#_add() , to not call Namespace#_doConnect()
                 const socket = new Socket(nsp, client, {}, {
+                    sid: nspState.socketId,
                     pid: nspState.socketPid,
-                    id: nspState.socketId,
                     rooms: nspState.rooms,
                     missedPackets: [],
                 })
