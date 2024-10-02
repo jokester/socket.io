@@ -7,7 +7,7 @@ import {Socket as OrigEioSocket} from 'engine.io/lib/socket';
 import type {EioSocketState} from "./EngineActorBase";
 import {WebsocketTransport} from "./WebsocketTransport";
 
-const debugLogger = debugModule('sio-serverless:eio:ServerlessEioSocket');
+const debugLogger = debugModule('sio-serverless:eio:EioSocket');
 
 function createStubEioServer() {
     const server = new EventEmitter();

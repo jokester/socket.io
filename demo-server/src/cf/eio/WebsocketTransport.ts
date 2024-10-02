@@ -7,7 +7,7 @@ import {WebSocket as EioWebSocketTransport} from 'engine.io/lib/transports/webso
 import debugModule from 'debug';
 import type {WebSocket as WsWebSocket} from "ws";
 
-const debugLogger = debugModule('engine.io:CustomEioWebsocketTransport');
+const debugLogger = debugModule('sio-serverless:eio:CustomEioWebsocketTransport');
 
 function createStubRequest(
     websocket: WsWebSocket

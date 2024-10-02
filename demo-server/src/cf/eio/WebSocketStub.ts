@@ -3,7 +3,7 @@ import type * as CF from "@cloudflare/workers-types";
 import type {WebSocket as WsWebSocket} from "ws";
 import debugModule from 'debug';
 
-const debugLogger = debugModule('engine.io:StubWsWebSocket');
+const debugLogger = debugModule('sio-serverless:eio:StubWsWebSocket');
 
 /**
  * stub for ws.WebSocket

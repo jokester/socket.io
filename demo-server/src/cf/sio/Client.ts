@@ -3,7 +3,7 @@ import debugModule  from "debug";
 import {SioServer} from "./SioServer";
 import {EioSocketStub} from "./EioSocketStub";
 
-const debugLogger = debugModule('sio-serverless:sio:Client');
+const debugLogger = debugModule('sio-serverless:sio:SioClient');
 /**
  * Not supported: connectTimeout
  */

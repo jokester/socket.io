@@ -5,7 +5,7 @@ import {SocketActor} from "../SocketActor";
 import {EioSocket} from "./EioSocket";
 import {WebsocketTransport} from "./WebsocketTransport";
 
-const debugLogger = debugModule('sio-serverless:EngineDelegate');
+const debugLogger = debugModule('sio-serverless:eio:EngineDelegate');
 
 /**
  * extension points for EngineActorBase classes
@@ -51,6 +51,7 @@ export class DefaultEngineDelegate implements EngineDelegate {
 
     recallSocketStateForConn(ws: CF.WebSocket): null | EioSocketState {
         const tags = this._ctx.getTags(ws)
+        debugLogger('recallSocketStateForConn', ws, tags)
         const sessionTag = tags.find(tag => tag.startsWith('sid:'))
         if (!sessionTag) {
             debugLogger("WARNING no conn state found for cf.WebSocket", ws)
@@ -81,7 +82,13 @@ export class DefaultEngineDelegate implements EngineDelegate {
 
         const ws = this._ctx.getWebSockets(tag)
         if (ws.length !== 1) {
-            debugLogger(`WARNING no websocket found for sid=${state.eioSocketId}`)
+            debugLogger(`WARNING no websocket found for tag: ${JSON.stringify(tag)}`, ws.length)
+
+            const wss = this._ctx.getWebSockets()
+            debugLogger(`DEBUG cf websockets`, wss.length)
+            for (const w of wss) {
+                debugLogger(`DEBUG cf ws`, this._ctx.getTags(w))
+            }
             return null
         }
         const transport = WebsocketTransport.create(ws[0]!)

@@ -9,7 +9,7 @@ import {EioSocketStub} from "./sio/EioSocketStub";
 import {lazyThenable} from "@jokester/ts-commonutil/lib/concurrency/lazy-thenable";
 import {createSioServer} from "./sio/factory";
 
-const debugLogger = debug('sio-serverless:sio:SocketActor');
+const debugLogger = debug('sio-serverless:SocketActor');
 
 export class SocketActor extends DurableObject<WorkerBindings> implements CF.DurableObject {
 

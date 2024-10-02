@@ -145,6 +145,7 @@ function createHandler(actor: EngineActorBase, actorCtx: CF.DurableObjectState) 
             const sid = socketId
             const tags = [`sid:${sid}`];
             actorCtx.acceptWebSocket(serverSocket, tags);
+            debugLogger('accepted ws connection', sid, tags);
             await actor.onNewConnection(sid, serverSocket)
             return new self.Response(null, {status: 101, webSocket: clientSocket});
         })

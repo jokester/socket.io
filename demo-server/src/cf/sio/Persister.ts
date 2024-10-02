@@ -1,9 +1,9 @@
 import type * as CF from '@cloudflare/workers-types';
 import debugModule from "debug";
 import {EioSocketStub} from "./EioSocketStub";
-const debugLogger = debugModule('sio-serverless:sio:Persister');
 import type * as sio from 'socket.io'
 import {SioClient} from "./Client";
+const debugLogger = debugModule('sio-serverless:sio:Persister');
 
 interface PersistedSioServerState1 {
     concreteNamespaces: string[]

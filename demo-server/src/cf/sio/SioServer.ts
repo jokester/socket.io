@@ -10,7 +10,7 @@ import {EngineActorBase} from "../eio/EngineActorBase";
 import type * as sio from 'socket.io'
 import {Persister} from "./Persister";
 
-const debugLogger = debugModule('sio-serverless:sio:Server');
+const debugLogger = debugModule('sio-serverless:sio:SioServer');
 
 export class SioServer extends OrigSioServer {
     private readonly connStubs = new Map<string, EioSocketStub>()

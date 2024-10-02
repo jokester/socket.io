@@ -3,11 +3,13 @@ const enabledPrefixes = [
   // 'sio-worker',
   // 'sio-serverless',
   // 'socket.io:client',
-  'socket.io',
+  // 'socket.io',
+  'engine.io',
   // 'limb:',
-  'sio-serverless',
-  'sio-serverless:sio:Single',
-  'sio-serverless:sio:Server',
+  'sio-serverless:eio',
+  'sio-serverless:EngineActor',
+  // 'sio-serverless:sio:Single',
+  // 'sio-serverless:SocketActor',
   // 'sio-serverless:sio:Persister',
 ]
 
