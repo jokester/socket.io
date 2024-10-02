@@ -41,6 +41,7 @@ export class SioServer extends OrigSioServer {
         const engineActorStub = this.engineActorNs.get(destId)
         engineActorStub.sendMessage(stub.eioSocketId, msg).then(
             (sentFromEioActor: boolean) => {
+                // TODO: handle closed connection
                 debugLogger('sent', stub.eioSocketId, sentFromEioActor, msg)
             },
             e => {
