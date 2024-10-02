@@ -43,8 +43,12 @@ export class SocketActor extends DurableObject<WorkerBindings> implements CF.Dur
     }
 
     async setupSioServer(s: SioServer) {
+        // XXX how to support such use with re-created nsps / sockets?
         s.of(forwardEverything.parentNamespace)
-            .on('connection', (socket: Socket) => forwardEverything.onConnection(socket));
+            .on('connection', (socket: Socket) => {
+                debugLogger('SocketActor#setupSioServer', 'connection', socket.id)
+                forwardEverything.onConnection(socket);
+            });
     }
 
     private readonly sioServer = lazyThenable(async () => {

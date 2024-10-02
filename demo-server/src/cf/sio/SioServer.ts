@@ -78,7 +78,7 @@ export class SioServer extends OrigSioServer {
                     return
                 }
 
-                // replay Namespace#_add()
+                // replay Namespace#_add() , to not call Namespace#_doConnect()
                 const socket = new Socket(nsp, client, {}, {
                     pid: nspState.socketPid,
                     id: nspState.socketId,
@@ -86,10 +86,13 @@ export class SioServer extends OrigSioServer {
                     missedPackets: [],
                 })
 
-                // replay: Namespace#_doConnect
+                // modified version of Namespace#_doConnect , to not call Socket#_onconnect
+                // this is needed to not send
+                nsp.sockets.set(socket.id, socket)
+                nsp.emitReserved("connect", socket);
+                nsp.emitReserved("connection", socket);
 
                 // replay Socket#_onconnect
-                nsp.sockets.set(socket.id, socket)
                 socket.connected = true
                 socket.join(socket.id)
 

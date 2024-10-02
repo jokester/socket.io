@@ -10,7 +10,7 @@ import {SocketActor} from "../SocketActor";
 import {EioSocket} from "./EioSocket";
 import {WebsocketTransport} from "./WebsocketTransport";
 
-const debugLogger = debugModule('sio-serverless:EngineActorBase');
+const debugLogger = debugModule('sio-serverless:eio:EngineActorBase');
 
 declare const self: CF.ServiceWorkerGlobalScope;
 
@@ -61,6 +61,7 @@ export abstract class EngineActorBase<Env = unknown> extends DurableObject<Env> 
         const socketState = this.recallSocketStateForId(eioSocketId)
         const socket = socketState && this.recallSocket(socketState)
         if (!socket) {
+            debugLogger('EngineActor#sendMessage', 'socket not found', eioSocketId)
             return false
         }
         try {

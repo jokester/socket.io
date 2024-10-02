@@ -26,7 +26,7 @@ export const workerApp = new Hono<{ Bindings: WorkerBindings }>().get(
          * 1. eio.Socket#id
          * 2. socket.io Socket
          */
-        const sessionId = Math.random().toString(16).slice(2, 12)
+        const sessionId = (Math.random()).toString(16).slice(2, 12)
         // @ts-ignore
         const res = await engineActorStub.fetch(`https://eioServer.internal/socket.io/?eio_sid=${sessionId}`, ctx.req.raw);
         // @ts-ignore
