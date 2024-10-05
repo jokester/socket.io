@@ -9,6 +9,9 @@ export async function createSioServer(ctx: CF.DurableObjectState, engineActorNs:
     return new SioServer(
         {
             adapter: class BoundAdapter extends SingleActorAdapter {
+                override get persister() {
+                    return persister
+                }
             }
         }, ctx, engineActorNs, persister)
 }

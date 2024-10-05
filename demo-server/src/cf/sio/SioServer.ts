@@ -21,6 +21,10 @@ export class SioServer extends OrigSioServer {
                 private readonly persister: Persister
                 ) {
         debugLogger('CustomSioServer#constructor')
+        if (options.connectionStateRecovery) {
+            throw new Error('options.connectionStateRecovery is not supported')
+        }
+
         super(undefined, {
             ...options,
             transports: ['websocket'],
@@ -110,15 +114,20 @@ export class SioServer extends OrigSioServer {
 
     startPersisting() {
         for(const nsp of this._nsps.values()) {
-            nsp.on('connection', (socket: Socket) => this.persister.onNewSocket(socket))
+            nsp.on('connection', (socket: Socket) => this.persister.onSocketConnect(socket))
         }
         /**
          * state changes from now on get persisted
          */
         this.on('new_namespace', nsp => {
             const nspNames = [...this._nsps.keys()]
-            this.persister.saveNamespaces(nspNames)
-            nsp.on('connection', (socket: Socket) => this.persister.onNewSocket(socket))
+            this.persister.onNewNamespace(nsp.name)
+            nsp.on('connection', (socket: Socket) => {
+                this.persister.onSocketConnect(socket)
+                socket.on('disconnect', (reason, desc) => {
+                    this.persister.onSocketDisconnect(socket)
+                })
+            })
         })
 
         // NOTE SioClient creation will only be triggered later
