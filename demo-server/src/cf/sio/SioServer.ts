@@ -18,7 +18,7 @@ export class SioServer extends OrigSioServer {
     constructor(
         options: Partial<sio.ServerOptions>,
         private readonly socketActorCtx: CF.DurableObjectState, private readonly engineActorNs: CF.DurableObjectNamespace<EngineActorBase>,
-                private readonly persister: Persister
+                readonly persister: Persister
                 ) {
         debugLogger('CustomSioServer#constructor')
         if (options.connectionStateRecovery) {

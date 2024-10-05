@@ -48,9 +48,16 @@ export class EioSocketStub extends EventEmitter {
         this.server._sendEioPacket(this, packet)
     }
 
+    /**
+     * called on
+     * 1. eio socket 'error' event, from sio.Client#onerror
+     * 2. sio.Client decode error
+     * 3. sio.Server#close() which is not called in worker
+     */
     close() {
         this.server.closeConn(this)
+        // this.emit('close', 'EioSocketStub#close()')
+        // TODO: should this call EioWorker to close the real conn?
     }
-
 }
 

@@ -34,6 +34,7 @@ export class SioClient extends OrigSioClient {
             debugLogger('CustomSioClient#onclose', reason, desc)
             // @ts-expect-error calling private method
             this.onclose(reason, desc);
+            this.server.persister.onRemoveClient(this.conn)
         });
         // NOT supported: connectTimeout
     }

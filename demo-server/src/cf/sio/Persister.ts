@@ -28,7 +28,7 @@ interface PersistedSioClientState {
   >;
 }
 
-const DEBUG_KEY_PREFIX = ""; // '_00002_'
+const DEBUG_KEY_PREFIX = "_00003_"; // '_00003_'
 const KEY_GLOBAL_STATE_NAMESPACES = `${DEBUG_KEY_PREFIX}_namespaces`;
 const KEY_GLOBAL_STATE_CLIENTS = `${DEBUG_KEY_PREFIX}_clients`;
 const KEY_CLIENT_STATE_PREFIX = `${DEBUG_KEY_PREFIX}_client_`;
@@ -80,19 +80,6 @@ export class Persister {
     return keyRemoved;
   }
 
-  /**
-   * @deprecated use onNewNamespace()
-   */
-  async saveNamespaces(concreteNamespaces: string[]) {
-    debugLogger("saveNamespaces", concreteNamespaces);
-    const prev = await this.loadServerState();
-    const updated: PersistedSioServerStateNamespaces = {
-      ...prev,
-      concreteNamespaces,
-    };
-    await this.sioCtx.storage.put({ [KEY_GLOBAL_STATE_NAMESPACES]: updated });
-  }
-
   async onNewNamespace(concreteNs: string) {
     await this.replaceGlobalState<PersistedSioServerStateNamespaces>(
       KEY_GLOBAL_STATE_NAMESPACES,
@@ -119,9 +106,7 @@ export class Persister {
     await this.replaceGlobalState<PersistedSioServerStateClients>(
       KEY_GLOBAL_STATE_CLIENTS,
       (prev) => ({
-        clientIds: prev?.clientIds
-          ? [...prev?.clientIds, clientId]
-          : [clientId],
+        clientIds: new Set([...(prev?.clientIds ?? []), clientId]),
       })
     );
     await this.replaceClientState(clientId, (prev) => ({
@@ -140,6 +125,7 @@ export class Persister {
         return prev;
       }
     );
+    await this.replaceClientState(stub.eioSocketId, whatever => null)
   }
 
   /**
@@ -147,7 +133,7 @@ export class Persister {
    */
   async onSocketConnect(socket: sio.Socket) {
     const clientId = (socket.client as SioClient).conn.eioSocketId;
-    debugLogger("onSocketConnected", clientId, socket.nsp.name);
+    debugLogger("onSocketConnect", clientId, socket.nsp.name);
 
     await this.replaceClientState(clientId, (prev) => {
       prev!.namespaces.set(socket.nsp.name, {
@@ -163,7 +149,12 @@ export class Persister {
    * called when a sio.Client leaves a sio.Namespace
    */
   async onSocketDisconnect(socket: sio.Socket) {
-    debugLogger("onSocketDisconnect", stub.eioSocketId);
+    const clientId = (socket.client as SioClient).conn.eioSocketId;
+    debugLogger("onSocketDisconnect", clientId, socket.nsp.name);
+    await this.replaceClientState(clientId, (prev) => {
+      prev!.namespaces.delete(socket.nsp.name);
+      return prev!;
+    });
   }
 
   private async replaceGlobalState<T>(
@@ -179,16 +170,22 @@ export class Persister {
 
   private async replaceClientState(
     clientId: string,
-    f: (prev: PersistedSioClientState | undefined) => PersistedSioClientState
+    f: (
+      prev: PersistedSioClientState | undefined
+    ) => PersistedSioClientState | null
   ) {
     const prev = await this.sioCtx.storage.get<PersistedSioClientState>(
       `${KEY_CLIENT_STATE_PREFIX}${clientId}`
     );
     debugLogger("replaceClientState prev", clientId, prev);
     const updated = f(prev);
-    await this.sioCtx.storage.put({
-      [`${KEY_CLIENT_STATE_PREFIX}${clientId}`]: updated,
-    });
+    if (updated) {
+      await this.sioCtx.storage.put({
+        [`${KEY_CLIENT_STATE_PREFIX}${clientId}`]: updated,
+      });
+    } else {
+      await this.sioCtx.storage.delete(`${KEY_CLIENT_STATE_PREFIX}${clientId}`);
+    }
     debugLogger("replaceClientState updated", clientId, updated);
   }
 
