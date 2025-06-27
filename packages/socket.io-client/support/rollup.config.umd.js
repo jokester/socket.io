@@ -10,25 +10,15 @@ const banner = `/*!
  * Released under the MIT License.
  */`;
 
-module.exports = {
-  input: "./build/esm/browser-entrypoint.js",
-  output: [
-    {
-      file: "./dist/socket.io.js",
-      format: "umd",
-      name: "io",
-      sourcemap: true,
-      banner,
-    },
-    {
-      file: "./dist/socket.io.min.js",
-      format: "umd",
-      name: "io",
-      sourcemap: true,
-      plugins: [terser()],
-      banner,
-    },
-  ],
+const devBundle = {
+  input: "./build/esm-debug/browser-entrypoint.js",
+  output: {
+    file: "./dist/socket.io.js",
+    format: "umd",
+    name: "io",
+    sourcemap: true,
+    banner,
+  },
   plugins: [
     nodeResolve({
       browser: true,
@@ -37,7 +27,56 @@ module.exports = {
     babel({
       babelHelpers: "bundled",
       presets: [["@babel/env"]],
-      plugins: ["@babel/plugin-transform-object-assign"],
+      plugins: [
+        "@babel/plugin-transform-object-assign",
+        [
+          "@babel/plugin-transform-classes",
+          {
+            loose: true,
+          },
+        ],
+      ],
     }),
   ],
 };
+
+const prodBundle = {
+  input: "./build/esm/browser-entrypoint.js",
+  output: {
+    file: "./dist/socket.io.min.js",
+    format: "umd",
+    name: "io",
+    sourcemap: true,
+    plugins: [
+      terser({
+        mangle: {
+          properties: {
+            regex: /^_/,
+            reserved: ["_placeholder"],
+          },
+        },
+      }),
+    ],
+    banner,
+  },
+  plugins: [
+    nodeResolve({
+      browser: true,
+    }),
+    babel({
+      babelHelpers: "bundled",
+      presets: [["@babel/env"]],
+      plugins: [
+        "@babel/plugin-transform-object-assign",
+        [
+          "@babel/plugin-transform-classes",
+          {
+            loose: true,
+          },
+        ],
+      ],
+    }),
+  ],
+};
+
+module.exports = [devBundle, prodBundle];

@@ -1,4 +1,4 @@
-import expect from "expect.js";
+import expect = require("expect.js");
 import { io } from "..";
 import { wrap, BASE_URL, success } from "./support/util";
 
@@ -120,7 +120,7 @@ describe("socket", () => {
 
   it("should change socket.id upon reconnection", () => {
     return wrap((done) => {
-      const socket = io(BASE_URL, { forceNew: true });
+      const socket = io(BASE_URL, { forceNew: true, reconnectionDelay: 10 });
       socket.on("connect", () => {
         const id = socket.id;
 
@@ -328,7 +328,7 @@ describe("socket", () => {
       setTimeout(() => {
         expect(count).to.eql(1);
         success(done, socket);
-      }, 200);
+      }, 100);
     });
   });
 
@@ -336,7 +336,7 @@ describe("socket", () => {
     const socket = io(BASE_URL + "/no", { forceNew: true });
 
     expect(() => socket.emit("disconnecting", "goodbye")).to.throwException(
-      /"disconnecting" is a reserved event name/
+      /"disconnecting" is a reserved event name/,
     );
   });
 
@@ -630,7 +630,7 @@ describe("socket", () => {
 
         try {
           await socket.timeout(50).emitWithAck("unknown");
-          expect().fail();
+          done(new Error("should not happen"));
         } catch (e) {
           success(done, socket);
         }
@@ -646,7 +646,7 @@ describe("socket", () => {
           expect(value).to.be(42);
           success(done, socket);
         } catch (e) {
-          expect().fail();
+          done(new Error("should not happen"));
         }
       });
     });
@@ -783,6 +783,35 @@ describe("socket", () => {
 
             setTimeout(() => socket.connect(), 100);
           });
+        });
+      });
+    });
+  });
+
+  describe("throttled timer", () => {
+    it("should buffer the event and send it upon reconnection", () => {
+      return wrap((done) => {
+        let hasReconnected = false;
+
+        const socket = io(BASE_URL, {
+          forceNew: true,
+          reconnectionDelay: 10,
+        });
+
+        socket.once("connect", () => {
+          // @ts-expect-error simulate a throttled timer
+          socket.io.engine._pingTimeoutTime = Date.now() - 1;
+
+          socket.emit("echo", "123", (value) => {
+            expect(hasReconnected).to.be(true);
+            expect(value).to.eql("123");
+
+            success(done, socket);
+          });
+        });
+
+        socket.io.once("reconnect", () => {
+          hasReconnected = true;
         });
       });
     });

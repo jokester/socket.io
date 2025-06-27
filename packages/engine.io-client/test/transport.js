@@ -100,7 +100,7 @@ describe("Transport", () => {
         timestampRequests: false,
       });
       expect(polling.uri()).to.contain(
-        "http://localhost:3000/engine.io?sid=test"
+        "http://localhost:3000/engine.io?sid=test",
       );
     });
 
@@ -124,7 +124,7 @@ describe("Transport", () => {
         timestampRequests: true,
       });
       expect(polling.uri()).to.match(
-        /http:\/\/localhost\/engine\.io\?(j=[0-9]+&)?(t=[0-9A-Za-z-_]+)/
+        /http:\/\/localhost\/engine\.io\?(j=[0-9]+&)?(t=[0-9A-Za-z-_]+)/,
       );
     });
 
@@ -180,7 +180,7 @@ describe("Transport", () => {
         timestampRequests: true,
       });
       expect(ws.uri()).to.match(
-        /ws:\/\/localhost\/engine\.io\?woot=[0-9A-Za-z-_]+/
+        /ws:\/\/localhost\/engine\.io\?woot=[0-9A-Za-z-_]+/,
       );
     });
 
@@ -210,7 +210,10 @@ describe("Transport", () => {
   // these are server only
   if (!env.browser) {
     describe("options", () => {
-      it("should accept an `agent` option for WebSockets", (done) => {
+      it("should accept an `agent` option for WebSockets", function (done) {
+        if (env.useBuiltinWs) {
+          return this.skip();
+        }
         const polling = new eio.transports.websocket({
           path: "/engine.io",
           hostname: "localhost",
@@ -269,7 +272,10 @@ describe("Transport", () => {
       });
 
       describe("perMessageDeflate", () => {
-        it("should set threshold", (done) => {
+        it("should set threshold", function (done) {
+          if (env.useBuiltinWs) {
+            return this.skip();
+          }
           const socket = new eio.Socket({
             transports: ["websocket"],
             perMessageDeflate: { threshold: 0 },
@@ -289,7 +295,10 @@ describe("Transport", () => {
           });
         });
 
-        it("should not compress when the byte size is below threshold", (done) => {
+        it("should not compress when the byte size is below threshold", function (done) {
+          if (env.useBuiltinWs) {
+            return this.skip();
+          }
           const socket = new eio.Socket({ transports: ["websocket"] });
           socket.on("open", () => {
             const ws = socket.transport.ws;

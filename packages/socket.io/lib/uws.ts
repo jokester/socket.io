@@ -14,7 +14,8 @@ export function patchAdapter(app /* : TemplatedApp */) {
   Adapter.prototype.addAll = function (id, rooms) {
     const isNew = !this.sids.has(id);
     addAll.call(this, id, rooms);
-    const socket: Socket = this.nsp.sockets.get(id);
+    const socket: Socket =
+      this.nsp.sockets.get(id) || this.nsp._preConnectSockets.get(id);
     if (!socket) {
       return;
     }
@@ -34,7 +35,8 @@ export function patchAdapter(app /* : TemplatedApp */) {
 
   Adapter.prototype.del = function (id, room) {
     del.call(this, id, room);
-    const socket: Socket = this.nsp.sockets.get(id);
+    const socket: Socket =
+      this.nsp.sockets.get(id) || this.nsp._preConnectSockets.get(id);
     if (socket && socket.conn.transport.name === "websocket") {
       // @ts-ignore
       const sessionId = socket.conn.id;
@@ -76,7 +78,7 @@ export function patchAdapter(app /* : TemplatedApp */) {
       app.publish(
         topic,
         isBinary ? encodedPacket : "4" + encodedPacket,
-        isBinary
+        isBinary,
       );
     });
 
@@ -93,7 +95,7 @@ function subscribe(
   namespaceName: string,
   socket: Socket,
   isNew: boolean,
-  rooms: Set<Room>
+  rooms: Set<Room>,
 ) {
   // @ts-ignore
   const sessionId = socket.conn.id;
@@ -135,25 +137,27 @@ export function serveFile(res /* : HttpResponse */, filepath: string) {
   const onDataChunk = (chunk: Buffer) => {
     const arrayBufferChunk = toArrayBuffer(chunk);
 
-    const lastOffset = res.getWriteOffset();
-    const [ok, done] = res.tryEnd(arrayBufferChunk, size);
+    res.cork(() => {
+      const lastOffset = res.getWriteOffset();
+      const [ok, done] = res.tryEnd(arrayBufferChunk, size);
 
-    if (!done && !ok) {
-      readStream.pause();
+      if (!done && !ok) {
+        readStream.pause();
 
-      res.onWritable((offset) => {
-        const [ok, done] = res.tryEnd(
-          arrayBufferChunk.slice(offset - lastOffset),
-          size
-        );
+        res.onWritable((offset) => {
+          const [ok, done] = res.tryEnd(
+            arrayBufferChunk.slice(offset - lastOffset),
+            size,
+          );
 
-        if (!done && ok) {
-          readStream.resume();
-        }
+          if (!done && ok) {
+            readStream.resume();
+          }
 
-        return ok;
-      });
-    }
+          return ok;
+        });
+      }
+    });
   };
 
   res.onAborted(destroyReadStream);

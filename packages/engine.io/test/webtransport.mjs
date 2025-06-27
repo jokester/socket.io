@@ -1,6 +1,5 @@
 import * as eio from "../build/server.js";
 import { Http3Server, WebTransport } from "@fails-components/webtransport";
-import { Http3EventLoop } from "@fails-components/webtransport/lib/event-loop.js";
 import expect from "expect.js";
 import request from "superagent";
 import { createServer } from "http";
@@ -30,8 +29,8 @@ async function setupServer(opts, cb) {
   const certificate = await generateWebTransportCertificate(
     [{ shortName: "CN", value: "localhost" }],
     {
-      days: 14, // the total length of the validity period MUST NOT exceed two weeks (https://w3c.github.io/webtransport/#custom-certificate-requirements)
-    }
+      days: 13, // the total length of the validity period MUST NOT exceed two weeks (https://w3c.github.io/webtransport/#custom-certificate-requirements)
+    },
   );
 
   const engine = new eio.Server(opts);
@@ -62,7 +61,10 @@ async function setupServer(opts, cb) {
   })();
 
   h3Server.startServer();
-  h3Server.onServerListening = () => cb({ engine, h3Server, certificate });
+
+  await h3Server.ready;
+
+  cb({ engine, h3Server, certificate });
 }
 
 function setup(opts, cb) {
@@ -76,7 +78,7 @@ function setup(opts, cb) {
             value: certificate.hash,
           },
         ],
-      }
+      },
     );
 
     await client.ready;
@@ -98,15 +100,11 @@ function setup(opts, cb) {
 }
 
 describe("WebTransport", () => {
-  after(() => {
-    Http3EventLoop.globalLoop.shutdownEventLoop(); // manually shutdown the event loop, instead of waiting 20s
-  });
-
   it("should allow to connect with WebTransport directly", (done) => {
     setupServer({}, async ({ engine, h3Server, certificate }) => {
       const partialDone = createPartialDone(
         () => success(engine, h3Server, done),
-        2
+        2,
       );
 
       engine.on("connection", (socket) => {
@@ -123,7 +121,7 @@ describe("WebTransport", () => {
               value: certificate.hash,
             },
           ],
-        }
+        },
       );
 
       await client.ready;
@@ -188,7 +186,7 @@ describe("WebTransport", () => {
                     value: certificate.hash,
                   },
                 ],
-              }
+              },
             );
 
             await client.ready;
@@ -216,14 +214,14 @@ describe("WebTransport", () => {
 
             await writer.write(Uint8Array.of(31));
             await writer.write(
-              TEXT_ENCODER.encode(`0{"sid":"${payload.sid}"}`)
+              TEXT_ENCODER.encode(`0{"sid":"${payload.sid}"}`),
             );
             await writer.write(Uint8Array.of(6));
             await writer.write(TEXT_ENCODER.encode(`2probe`));
             await writer.write(Uint8Array.of(1));
             await writer.write(TEXT_ENCODER.encode(`5`));
           });
-      }
+      },
     );
   });
 
@@ -242,7 +240,7 @@ describe("WebTransport", () => {
                 value: certificate.hash,
               },
             ],
-          }
+          },
         );
 
         await client.ready;
@@ -250,7 +248,7 @@ describe("WebTransport", () => {
         client.closed.then(() => {
           success(engine, h3Server, done);
         });
-      }
+      },
     );
   });
 
@@ -269,7 +267,7 @@ describe("WebTransport", () => {
                 value: certificate.hash,
               },
             ],
-          }
+          },
         );
 
         await client.ready;
@@ -281,7 +279,7 @@ describe("WebTransport", () => {
         client.closed.then(() => {
           success(engine, h3Server, done);
         });
-      }
+      },
     );
   });
 
@@ -304,7 +302,7 @@ describe("WebTransport", () => {
         }
 
         success(engine, h3Server, done);
-      }
+      },
     );
   });
 
@@ -322,7 +320,7 @@ describe("WebTransport", () => {
         });
 
         client.closed.then(() => success(engine, h3Server, partialDone));
-      }
+      },
     );
   });
 
@@ -440,7 +438,7 @@ describe("WebTransport", () => {
 
       const header = await reader.read();
       expect(header.value).to.eql(
-        Uint8Array.of(255, 0, 0, 0, 0, 0, 15, 66, 64)
+        Uint8Array.of(255, 0, 0, 0, 0, 0, 15, 66, 64),
       );
 
       const chunk1 = await reader.read();

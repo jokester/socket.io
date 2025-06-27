@@ -116,7 +116,7 @@ interface SocketReservedEvents {
   connect_error: (err: Error) => void;
   disconnect: (
     reason: Socket.DisconnectReason,
-    description?: DisconnectDescription
+    description?: DisconnectDescription,
   ) => void;
 }
 
@@ -146,7 +146,7 @@ interface SocketReservedEvents {
  */
 export class Socket<
   ListenEvents extends EventsMap = DefaultEventsMap,
-  EmitEvents extends EventsMap = ListenEvents
+  EmitEvents extends EventsMap = ListenEvents,
 > extends Emitter<ListenEvents, EmitEvents, SocketReservedEvents> {
   public readonly io: Manager<ListenEvents, EmitEvents>;
 
@@ -440,16 +440,13 @@ export class Socket<
       packet.id = id;
     }
 
-    const isTransportWritable =
-      this.io.engine &&
-      this.io.engine.transport &&
-      this.io.engine.transport.writable;
+    const isTransportWritable = this.io.engine?.transport?.writable;
+    const isConnected = this.connected && !this.io.engine?._hasPingExpired();
 
-    const discardPacket =
-      this.flags.volatile && (!isTransportWritable || !this.connected);
+    const discardPacket = this.flags.volatile && !isTransportWritable;
     if (discardPacket) {
       debug("discard packet as the transport is not currently writable");
-    } else if (this.connected) {
+    } else if (isConnected) {
       this.notifyOutgoingListeners(packet);
       this.packet(packet);
     } else {
@@ -554,7 +551,7 @@ export class Socket<
           debug(
             "packet [%d] is discarded after %d tries",
             packet.id,
-            packet.tryCount
+            packet.tryCount,
           );
           this._queue.shift();
           if (ack) {
@@ -591,7 +588,7 @@ export class Socket<
     if (packet.pending && !force) {
       debug(
         "packet [%d] has already been sent and is waiting for an ack",
-        packet.id
+        packet.id,
       );
       return;
     }
@@ -665,7 +662,7 @@ export class Socket<
    */
   private onclose(
     reason: Socket.DisconnectReason,
-    description?: DisconnectDescription
+    description?: DisconnectDescription,
   ): void {
     debug("close (%s)", reason);
     this.connected = false;
@@ -683,7 +680,7 @@ export class Socket<
   private _clearAcks() {
     Object.keys(this.acks).forEach((id) => {
       const isBuffered = this.sendBuffer.some(
-        (packet) => String(packet.id) === id
+        (packet) => String(packet.id) === id,
       );
       if (!isBuffered) {
         // note: handlers that do not accept an error as first argument are ignored here
@@ -716,8 +713,8 @@ export class Socket<
           this.emitReserved(
             "connect_error",
             new Error(
-              "It seems you are trying to reach a Socket.IO server in v2.x with a v3.x client, but they are not compatible (more information here: https://socket.io/docs/v3/migrating-from-2-x-to-3-0/)"
-            )
+              "It seems you are trying to reach a Socket.IO server in v2.x with a v3.x client, but they are not compatible (more information here: https://socket.io/docs/v3/migrating-from-2-x-to-3-0/)",
+            ),
           );
         }
         break;
@@ -967,7 +964,7 @@ export class Socket<
    * @returns self
    */
   public timeout(
-    timeout: number
+    timeout: number,
   ): Socket<ListenEvents, DecorateAcknowledgements<EmitEvents>> {
     this.flags.timeout = timeout;
     return this;

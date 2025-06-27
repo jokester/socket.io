@@ -17,13 +17,13 @@ import type {
   Server as HttpServer,
   ServerResponse,
 } from "http";
-import type { CookieSerializeOptions } from "cookie";
 import type { CorsOptions, CorsOptionsDelegate } from "cors";
 import type { Duplex } from "stream";
 import type * as T from "./transports";
 import { WebTransport } from "./transports";
 import { createPacketDecoderStream } from "engine.io-parser";
 import type { EngineRequest } from "./transport";
+import type { CookieSerializeOptions } from "./contrib/types.cookie";
 
 const debug = debugModule("engine");
 
@@ -678,6 +678,9 @@ class WebSocketResponse {
   }
 }
 
+/**
+ * An Engine.IO server based on Node.js built-in HTTP server and the `ws` package for WebSocket connections.
+ */
 export class Server extends BaseServer {
   public httpServer?: HttpServer;
   private ws: WsServer;

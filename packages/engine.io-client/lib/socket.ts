@@ -10,10 +10,33 @@ import {
   CookieJar,
   createCookieJar,
   defaultBinaryType,
+  nextTick,
 } from "./globals.node.js";
 import debugModule from "debug"; // debug()
 
 const debug = debugModule("engine.io-client:socket"); // debug()
+
+const withEventListeners =
+  typeof addEventListener === "function" &&
+  typeof removeEventListener === "function";
+
+const OFFLINE_EVENT_LISTENERS = [];
+
+if (withEventListeners) {
+  // within a ServiceWorker, any event handler for the 'offline' event must be added on the initial evaluation of the
+  // script, so we create one single event listener here which will forward the event to the socket instances
+  addEventListener(
+    "offline",
+    () => {
+      debug(
+        "closing %d connection(s) because the network was lost",
+        OFFLINE_EVENT_LISTENERS.length,
+      );
+      OFFLINE_EVENT_LISTENERS.forEach((listener) => listener());
+    },
+    false,
+  );
+}
 
 export interface SocketOptions {
   /**
@@ -85,7 +108,9 @@ export interface SocketOptions {
    *
    * @default ['polling','websocket', 'webtransport']
    */
-  transports?: string[] | TransportCtor[];
+  transports?:
+    | ("polling" | "websocket" | "webtransport" | string)[]
+    | TransportCtor[];
 
   /**
    * Whether all the transports should be tested, instead of just the first one.
@@ -318,7 +343,12 @@ export class SocketWithoutUpgrade extends Emitter<
   private _pingTimeout: number = -1;
   private _maxPayload?: number = -1;
   private _pingTimeoutTimer: NodeJS.Timer;
-  private clearTimeoutFn: (timer: undefined | NodeJS.Timer | number) => void;
+  /**
+   * The expiration timestamp of the {@link _pingTimeoutTimer} object is tracked, in case the timer is throttled and the
+   * callback is not fired on time. This can happen for example when a laptop is suspended or when a phone is locked.
+   */
+  private _pingTimeoutTime = Infinity;
+  private clearTimeoutFn: typeof clearTimeout;
   private readonly _beforeunloadEventListener: () => void;
   private readonly _offlineEventListener: () => void;
 
@@ -379,8 +409,8 @@ export class SocketWithoutUpgrade extends Emitter<
       (typeof location !== "undefined" && location.port
         ? location.port
         : this.secure
-        ? "443"
-        : "80");
+          ? "443"
+          : "80");
 
     this.transports = [];
     this._transportsByName = {};
@@ -406,7 +436,7 @@ export class SocketWithoutUpgrade extends Emitter<
         transportOptions: {},
         closeOnBeforeunload: false,
       },
-      opts
+      opts,
     );
 
     this.opts.path =
@@ -417,7 +447,7 @@ export class SocketWithoutUpgrade extends Emitter<
       this.opts.query = decode(this.opts.query);
     }
 
-    if (typeof addEventListener === "function") {
+    if (withEventListeners) {
       if (this.opts.closeOnBeforeunload) {
         // Firefox closes the connection when the "beforeunload" event is emitted but not Chrome. This event listener
         // ensures every browser behaves the same (no "disconnect" event at the Socket.IO level when the page is
@@ -432,16 +462,17 @@ export class SocketWithoutUpgrade extends Emitter<
         addEventListener(
           "beforeunload",
           this._beforeunloadEventListener,
-          false
+          false,
         );
       }
       if (this.hostname !== "localhost") {
+        debug("adding listener for the 'offline' event");
         this._offlineEventListener = () => {
           this._onClose("transport close", {
             description: "network connection lost",
           });
         };
-        addEventListener("offline", this._offlineEventListener, false);
+        OFFLINE_EVENT_LISTENERS.push(this._offlineEventListener);
       }
     }
 
@@ -482,7 +513,7 @@ export class SocketWithoutUpgrade extends Emitter<
         secure: this.secure,
         port: this.port,
       },
-      this.opts.transportOptions[name]
+      this.opts.transportOptions[name],
     );
 
     debug("options: %j", opts);
@@ -572,7 +603,6 @@ export class SocketWithoutUpgrade extends Emitter<
 
       // Socket is live - any packet counts
       this.emitReserved("heartbeat");
-      this._resetPingTimeout();
 
       switch (packet.type) {
         case "open":
@@ -583,6 +613,7 @@ export class SocketWithoutUpgrade extends Emitter<
           this._sendPacket("pong");
           this.emitReserved("ping");
           this.emitReserved("pong");
+          this._resetPingTimeout();
           break;
 
         case "error":
@@ -628,9 +659,11 @@ export class SocketWithoutUpgrade extends Emitter<
    */
   private _resetPingTimeout() {
     this.clearTimeoutFn(this._pingTimeoutTimer);
+    const delay = this._pingInterval + this._pingTimeout;
+    this._pingTimeoutTime = Date.now() + delay;
     this._pingTimeoutTimer = this.setTimeoutFn(() => {
       this._onClose("ping timeout");
-    }, this._pingInterval + this._pingTimeout);
+    }, delay);
     if (this.opts.autoUnref) {
       this._pingTimeoutTimer.unref();
     }
@@ -709,6 +742,31 @@ export class SocketWithoutUpgrade extends Emitter<
   }
 
   /**
+   * Checks whether the heartbeat timer has expired but the socket has not yet been notified.
+   *
+   * Note: this method is private for now because it does not really fit the WebSocket API, but if we put it in the
+   * `write()` method then the message would not be buffered by the Socket.IO client.
+   *
+   * @return {boolean}
+   * @private
+   */
+  /* private */ _hasPingExpired() {
+    if (!this._pingTimeoutTime) return true;
+
+    const hasExpired = Date.now() > this._pingTimeoutTime;
+    if (hasExpired) {
+      debug("throttled timer detected, scheduling connection close");
+      this._pingTimeoutTime = 0;
+
+      nextTick(() => {
+        this._onClose("ping timeout");
+      }, this.setTimeoutFn);
+    }
+
+    return hasExpired;
+  }
+
+  /**
    * Sends a message.
    *
    * @param {String} msg - message.
@@ -747,7 +805,7 @@ export class SocketWithoutUpgrade extends Emitter<
     type: PacketType,
     data?: RawData,
     options?: WriteOptions,
-    fn?: () => void
+    fn?: () => void,
   ) {
     if ("function" === typeof data) {
       fn = data;
@@ -868,13 +926,21 @@ export class SocketWithoutUpgrade extends Emitter<
       // ignore further transport communication
       this.transport.removeAllListeners();
 
-      if (typeof removeEventListener === "function") {
-        removeEventListener(
-          "beforeunload",
-          this._beforeunloadEventListener,
-          false
-        );
-        removeEventListener("offline", this._offlineEventListener, false);
+      if (withEventListeners) {
+        if (this._beforeunloadEventListener) {
+          removeEventListener(
+            "beforeunload",
+            this._beforeunloadEventListener,
+            false,
+          );
+        }
+        if (this._offlineEventListener) {
+          const i = OFFLINE_EVENT_LISTENERS.indexOf(this._offlineEventListener);
+          if (i !== -1) {
+            debug("removing listener for the 'offline' event");
+            OFFLINE_EVENT_LISTENERS.splice(i, 1);
+          }
+        }
       }
 
       // set ready state

@@ -24,12 +24,12 @@ const cache: Record<string, Manager> = {};
  */
 function lookup(opts?: Partial<ManagerOptions & SocketOptions>): Socket;
 function lookup(
-  uri: string,
-  opts?: Partial<ManagerOptions & SocketOptions>
+  uri?: string,
+  opts?: Partial<ManagerOptions & SocketOptions>,
 ): Socket;
 function lookup(
   uri?: string | Partial<ManagerOptions & SocketOptions>,
-  opts?: Partial<ManagerOptions & SocketOptions>
+  opts?: Partial<ManagerOptions & SocketOptions>,
 ): Socket {
   if (typeof uri === "object") {
     opts = uri;
@@ -99,3 +99,12 @@ export {
   lookup as connect,
   lookup as default,
 };
+
+export {
+  Fetch,
+  NodeXHR,
+  XHR,
+  NodeWebSocket,
+  WebSocket,
+  WebTransport,
+} from "engine.io-client";

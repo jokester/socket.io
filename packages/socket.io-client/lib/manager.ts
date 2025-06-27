@@ -100,7 +100,7 @@ interface ManagerReservedEvents {
 
 export class Manager<
   ListenEvents extends EventsMap = DefaultEventsMap,
-  EmitEvents extends EventsMap = ListenEvents
+  EmitEvents extends EventsMap = ListenEvents,
 > extends Emitter<{}, {}, ManagerReservedEvents> {
   /**
    * The Engine.IO client instance
@@ -152,11 +152,11 @@ export class Manager<
   constructor(uri?: string, opts?: Partial<ManagerOptions>);
   constructor(
     uri?: string | Partial<ManagerOptions>,
-    opts?: Partial<ManagerOptions>
+    opts?: Partial<ManagerOptions>,
   );
   constructor(
     uri?: string | Partial<ManagerOptions>,
-    opts?: Partial<ManagerOptions>
+    opts?: Partial<ManagerOptions>,
   ) {
     super();
     if (uri && "object" === typeof uri) {
@@ -201,6 +201,9 @@ export class Manager<
   public reconnection(v?: boolean): this | boolean {
     if (!arguments.length) return this._reconnection;
     this._reconnection = !!v;
+    if (!v) {
+      this.skipReconnect = true;
+    }
     return this;
   }
 
@@ -405,7 +408,7 @@ export class Manager<
       on(socket, "error", this.onerror.bind(this)),
       on(socket, "close", this.onclose.bind(this)),
       // @ts-ignore
-      on(this.decoder, "decoded", this.ondecoded.bind(this))
+      on(this.decoder, "decoded", this.ondecoded.bind(this)),
     );
   }
 
@@ -531,7 +534,6 @@ export class Manager<
     this.skipReconnect = true;
     this._reconnecting = false;
     this.onclose("forced close");
-    if (this.engine) this.engine.close();
   }
 
   /**
@@ -544,7 +546,11 @@ export class Manager<
   }
 
   /**
-   * Called upon engine close.
+   * Called when:
+   *
+   * - the low-level engine is closed
+   * - the parser encountered a badly formatted packet
+   * - all sockets are disconnected
    *
    * @private
    */
@@ -552,6 +558,7 @@ export class Manager<
     debug("closed due to %s", reason);
 
     this.cleanup();
+    this.engine?.close();
     this.backoff.reset();
     this._readyState = "closed";
     this.emitReserved("close", reason, description);

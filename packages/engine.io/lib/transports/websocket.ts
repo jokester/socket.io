@@ -59,13 +59,13 @@ export class WebSocket extends Transport {
         // @ts-ignore
         this.socket._sender.sendFrame(
           packet.options.wsPreEncodedFrame,
-          isLast ? this._onSentLast : this._onSent
+          isLast ? this._onSentLast : this._onSent,
         );
       } else {
         this.parser.encodePacket(
           packet,
           this.supportsBinary,
-          isLast ? this._doSendLast : this._doSend
+          isLast ? this._doSendLast : this._doSend,
         );
       }
     }

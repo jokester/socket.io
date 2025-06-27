@@ -15,8 +15,8 @@ import {
   StrictEventEmitter,
 } from "./typed-events";
 import type { Client } from "./client";
-import type { Namespace, NamespaceReservedEventsMap } from "./namespace";
-import type { IncomingHttpHeaders, IncomingMessage } from "http";
+import type { Namespace } from "./namespace";
+import type { IncomingMessage } from "http";
 import type {
   Adapter,
   BroadcastFlags,
@@ -26,26 +26,15 @@ import type {
   SocketId,
 } from "socket.io-adapter";
 import base64id from "base64id";
-import type { ParsedUrlQuery } from "querystring";
 import { BroadcastOperator } from "./broadcast-operator";
+import {
+  DisconnectReason,
+  Handshake,
+  RESERVED_EVENTS,
+  SocketReservedEventsMap,
+} from "./socket-types";
 
 const debug = debugModule("socket.io:socket");
-
-type ClientReservedEvents = "connect_error";
-
-// TODO for next major release: cleanup disconnect reasons
-export type DisconnectReason =
-  // Engine.IO close reasons
-  | "transport error"
-  | "transport close"
-  | "forced close"
-  | "ping timeout"
-  | "parse error"
-  // Socket.IO disconnect reasons
-  | "server shutting down"
-  | "forced server close"
-  | "client namespace disconnect"
-  | "server namespace disconnect";
 
 const RECOVERABLE_DISCONNECT_REASONS: ReadonlySet<DisconnectReason> = new Set([
   "transport error",
@@ -55,88 +44,6 @@ const RECOVERABLE_DISCONNECT_REASONS: ReadonlySet<DisconnectReason> = new Set([
   "server shutting down",
   "forced server close",
 ]);
-
-export interface SocketReservedEventsMap {
-  disconnect: (reason: DisconnectReason, description?: any) => void;
-  disconnecting: (reason: DisconnectReason, description?: any) => void;
-  error: (err: Error) => void;
-}
-
-// EventEmitter reserved events: https://nodejs.org/api/events.html#events_event_newlistener
-export interface EventEmitterReservedEventsMap {
-  newListener: (
-    eventName: string | Symbol,
-    listener: (...args: any[]) => void
-  ) => void;
-  removeListener: (
-    eventName: string | Symbol,
-    listener: (...args: any[]) => void
-  ) => void;
-}
-
-export const RESERVED_EVENTS: ReadonlySet<string | Symbol> = new Set<
-  | ClientReservedEvents
-  | keyof NamespaceReservedEventsMap<never, never, never, never>
-  | keyof SocketReservedEventsMap
-  | keyof EventEmitterReservedEventsMap
->(<const>[
-  "connect",
-  "connect_error",
-  "disconnect",
-  "disconnecting",
-  "newListener",
-  "removeListener",
-]);
-
-/**
- * The handshake details
- */
-export interface Handshake {
-  /**
-   * The headers sent as part of the handshake
-   */
-  headers: IncomingHttpHeaders;
-
-  /**
-   * The date of creation (as string)
-   */
-  time: string;
-
-  /**
-   * The ip of the client
-   */
-  address: string;
-
-  /**
-   * Whether the connection is cross-domain
-   */
-  xdomain: boolean;
-
-  /**
-   * Whether the connection is secure
-   */
-  secure: boolean;
-
-  /**
-   * The date of creation (as unix timestamp)
-   */
-  issued: number;
-
-  /**
-   * The request URL string
-   */
-  url: string;
-
-  /**
-   * The query object
-   */
-  query: ParsedUrlQuery;
-
-  /**
-   * The auth object
-   */
-  auth: { [key: string]: any };
-}
 
 /**
  * `[eventName, ...args]`
@@ -180,7 +87,7 @@ export class Socket<
   ListenEvents extends EventsMap = DefaultEventsMap,
   EmitEvents extends EventsMap = ListenEvents,
   ServerSideEvents extends EventsMap = DefaultEventsMap,
-  SocketData = any
+  SocketData = any,
 > extends StrictEventEmitter<
   ListenEvents,
   EmitEvents,
@@ -253,7 +160,7 @@ export class Socket<
     readonly nsp: Namespace<ListenEvents, EmitEvents, ServerSideEvents>,
     readonly client: Client<ListenEvents, EmitEvents, ServerSideEvents>,
     auth: Record<string, unknown>,
-    previousSession?: Session
+    previousSession?: Session,
   ) {
     super();
     this.server = nsp.server;
@@ -530,7 +437,7 @@ export class Socket<
    */
   private packet(
     packet: Omit<Packet, "nsp"> & Partial<Pick<Packet, "nsp">>,
-    opts: any = {}
+    opts: any = {},
   ): void {
     packet.nsp = this.nsp.name;
     opts.compress = false !== opts.compress;
@@ -557,7 +464,7 @@ export class Socket<
 
     return this.adapter.addAll(
       this.id,
-      new Set(Array.isArray(rooms) ? rooms : [rooms])
+      new Set(Array.isArray(rooms) ? rooms : [rooms]),
     );
   }
 
@@ -894,7 +801,7 @@ export class Socket<
    * @returns self
    */
   public timeout(
-    timeout: number
+    timeout: number,
   ): Socket<
     ListenEvents,
     DecorateAcknowledgements<EmitEvents>,
@@ -962,17 +869,18 @@ export class Socket<
    * @param {Function} fn - last fn call in the middleware
    * @private
    */
-  private run(event: Event, fn: (err: Error | null) => void): void {
+  private run(event: Event, fn: (err?: Error) => void): void {
+    if (!this.fns.length) return fn();
+
     const fns = this.fns.slice(0);
-    if (!fns.length) return fn(null);
 
     function run(i: number) {
-      fns[i](event, function (err) {
+      fns[i](event, (err) => {
         // upon error, short-circuit
         if (err) return fn(err);
 
         // if no middleware left, summon callback
-        if (!fns[i + 1]) return fn(null);
+        if (!fns[i + 1]) return fn();
 
         // go on to next
         run(i + 1);

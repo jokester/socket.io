@@ -32,7 +32,7 @@ export class Client<
   ListenEvents extends EventsMap,
   EmitEvents extends EventsMap,
   ServerSideEvents extends EventsMap,
-  SocketData = any
+  SocketData = any,
 > {
   public readonly conn: RawSocket;
 
@@ -133,7 +133,7 @@ export class Client<
       (
         dynamicNspName:
           | Namespace<ListenEvents, EmitEvents, ServerSideEvents, SocketData>
-          | false
+          | false,
       ) => {
         if (dynamicNspName) {
           this.doConnect(name, auth);
@@ -147,7 +147,7 @@ export class Client<
             },
           });
         }
-      }
+      },
     );
   }
 
@@ -192,7 +192,7 @@ export class Client<
    * @private
    */
   _remove(
-    socket: Socket<ListenEvents, EmitEvents, ServerSideEvents, SocketData>
+    socket: Socket<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
   ): void {
     if (this.sockets.has(socket.id)) {
       const nsp = this.sockets.get(socket.id)!.nsp.name;
@@ -236,11 +236,11 @@ export class Client<
 
   private writeToEngine(
     encodedPackets: Array<string | Buffer>,
-    opts: WriteOptions
+    opts: WriteOptions,
   ): void {
     if (opts.volatile && !this.conn.transport.writable) {
       debug(
-        "volatile packet is discarded since the transport is not currently writable"
+        "volatile packet is discarded since the transport is not currently writable",
       );
       return;
     }
@@ -323,7 +323,7 @@ export class Client<
    */
   private onclose(
     reason: CloseReason | "forced server close",
-    description?: any
+    description?: any,
   ): void {
     debug("client close with reason %s", reason);
 

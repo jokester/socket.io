@@ -43,7 +43,7 @@ export abstract class BaseWS extends Transport {
           "origin",
           "maxPayload",
           "family",
-          "checkServerIdentity"
+          "checkServerIdentity",
         );
 
     if (this.opts.extraHeaders) {
@@ -64,7 +64,7 @@ export abstract class BaseWS extends Transport {
   abstract createSocket(
     uri: string,
     protocols: string | string[] | undefined,
-    opts: Record<string, any>
+    opts: Record<string, any>,
   );
 
   /**
@@ -123,6 +123,7 @@ export abstract class BaseWS extends Transport {
 
   override doClose() {
     if (typeof this.ws !== "undefined") {
+      this.ws.onerror = () => {};
       this.ws.close();
       this.ws = null;
     }
@@ -166,7 +167,7 @@ export class WS extends BaseWS {
   createSocket(
     uri: string,
     protocols: string | string[] | undefined,
-    opts: Record<string, any>
+    opts: Record<string, any>,
   ) {
     return !isReactNative
       ? protocols

@@ -90,7 +90,7 @@ describe("Socket", function () {
 
     socket.on("error", (err) => {
       expect(err.message).to.eql(
-        useFetch ? "fetch read error" : "xhr poll error"
+        useFetch ? "fetch read error" : "xhr poll error",
       );
       done();
     });
@@ -237,7 +237,7 @@ describe("Socket", function () {
           // err.context is a XMLHttpRequest object
           expect(err.context.readyState).to.eql(4);
           expect(err.context.responseText).to.eql(
-            '{"code":1,"message":"Session ID unknown"}'
+            '{"code":1,"message":"Session ID unknown"}',
           );
         }
       });
@@ -266,6 +266,32 @@ describe("Socket", function () {
       socket.on("close", (reason, details) => {
         expect(reason).to.eql("transport error");
         expect(details).to.be.an(Error);
+        done();
+      });
+    });
+  });
+
+  describe("throttled timer", () => {
+    it("checks the state of the timer", (done) => {
+      const socket = new Socket();
+
+      expect(socket._hasPingExpired()).to.be(false);
+
+      socket.on("open", () => {
+        expect(socket._hasPingExpired()).to.be(false);
+
+        // simulate a throttled timer
+        socket._pingTimeoutTime = Date.now() - 1;
+
+        expect(socket._hasPingExpired()).to.be(true);
+
+        // subsequent calls should not trigger more 'close' events
+        expect(socket._hasPingExpired()).to.be(true);
+        expect(socket._hasPingExpired()).to.be(true);
+      });
+
+      socket.on("close", (reason) => {
+        expect(reason).to.eql("ping timeout");
         done();
       });
     });

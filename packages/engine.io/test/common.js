@@ -1,8 +1,24 @@
+if (process.env.EIO_CLIENT === "3" && process.versions.node.startsWith("22")) {
+  // FIXME WebSocket error with engine.io-client@3
+  global.WebSocket = null;
+}
+
 const { listen, uServer } = require("..");
 const { Socket } =
   process.env.EIO_CLIENT === "3"
     ? require("engine.io-client-v3")
     : require("engine.io-client");
+
+switch (process.env.EIO_WS_ENGINE) {
+  case "uws":
+    console.log(
+      "[WARN] testing with uWebSockets.js instead of Node.js built-in HTTP server",
+    );
+    break;
+  case "eiows":
+    console.log("[WARN] testing with eiows instead of ws");
+    break;
+}
 
 /**
  * Listen shortcut that fires a callback on an ephemeral port.

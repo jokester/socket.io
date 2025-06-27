@@ -17,6 +17,19 @@ describe("connection", function () {
     });
   });
 
+  it("should connect to localhost (ws)", (done) => {
+    const socket = new Socket({
+      transports: ["websocket"],
+    });
+    socket.on("open", () => {
+      socket.on("message", (data) => {
+        expect(data).to.equal("hi");
+        socket.close();
+        done();
+      });
+    });
+  });
+
   it("should receive multibyte utf-8 strings with polling", (done) => {
     const socket = new Socket();
     socket.on("open", () => {
@@ -34,12 +47,12 @@ describe("connection", function () {
     const socket = new Socket();
     socket.on("open", () => {
       socket.send(
-        "\uD800\uDC00-\uDB7F\uDFFF\uDB80\uDC00-\uDBFF\uDFFF\uE000-\uF8FF"
+        "\uD800\uDC00-\uDB7F\uDFFF\uDB80\uDC00-\uDBFF\uDFFF\uE000-\uF8FF",
       );
       socket.on("message", (data) => {
         if ("hi" === data) return;
         expect(data).to.be(
-          "\uD800\uDC00-\uDB7F\uDFFF\uDB80\uDC00-\uDBFF\uDFFF\uE000-\uF8FF"
+          "\uD800\uDC00-\uDB7F\uDFFF\uDB80\uDC00-\uDBFF\uDFFF\uE000-\uF8FF",
         );
         socket.close();
         done();
@@ -59,7 +72,7 @@ describe("connection", function () {
       setTimeout(() => {
         expect(noPacket).to.be(true);
         done();
-      }, 1200);
+      }, 200);
     });
   });
 
@@ -177,7 +190,7 @@ describe("connection", function () {
         setTimeout(() => {
           expect(noPacket).to.be(true);
           done();
-        }, 1200);
+        }, 200);
       });
     });
 

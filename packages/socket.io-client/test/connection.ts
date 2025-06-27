@@ -1,9 +1,10 @@
-import expect from "expect.js";
+import expect = require("expect.js");
 import { io, Manager, ManagerOptions } from "..";
 import hasCORS from "has-cors";
 import { install } from "@sinonjs/fake-timers";
 import textBlobBuilder from "text-blob-builder";
 import { BASE_URL, wrap } from "./support/util";
+import { nextTick } from "engine.io-client";
 
 describe("connection", () => {
   it("should connect to localhost", () => {
@@ -158,7 +159,7 @@ describe("connection", () => {
 
   it("should reconnect by default", () => {
     return wrap((done) => {
-      const socket = io(BASE_URL, { forceNew: true, reconnectionDelay: 0 });
+      const socket = io(BASE_URL, { forceNew: true, reconnectionDelay: 10 });
       socket.io.on("reconnect", () => {
         socket.disconnect();
         done();
@@ -166,7 +167,7 @@ describe("connection", () => {
 
       setTimeout(() => {
         socket.io.engine.close();
-      }, 500);
+      }, 100);
     });
   });
 
@@ -189,7 +190,7 @@ describe("connection", () => {
 
   it("should reconnect automatically after reconnecting manually", () => {
     return wrap((done) => {
-      const socket = io(BASE_URL, { forceNew: true });
+      const socket = io(BASE_URL, { forceNew: true, reconnectionDelay: 10 });
       socket
         .once("connect", () => {
           socket.disconnect();
@@ -202,7 +203,7 @@ describe("connection", () => {
           socket.connect();
           setTimeout(() => {
             socket.io.engine.close();
-          }, 500);
+          }, 100);
         });
     });
   });
@@ -281,13 +282,13 @@ describe("connection", () => {
       });
       socket.io.once("error", () => {
         socket.io.on("reconnect_attempt", () => {
-          expect().fail();
+          done(new Error("should not happen"));
         });
         socket.disconnect();
         // set a timeout to let reconnection possibly fire
         setTimeout(() => {
           done();
-        }, 500);
+        }, 100);
       });
     });
   });
@@ -301,13 +302,13 @@ describe("connection", () => {
       });
       socket.io.once("reconnect_attempt", () => {
         socket.io.on("reconnect_attempt", () => {
-          expect().fail();
+          done(new Error("should not happen"));
         });
         socket.disconnect();
         // set a timeout to let reconnection possibly fire
         setTimeout(() => {
           done();
-        }, 500);
+        }, 100);
       });
     });
   });
@@ -332,27 +333,29 @@ describe("connection", () => {
 
   it("should stop reconnecting on a socket and keep to reconnect on another", () => {
     return wrap((done) => {
-      const manager = new Manager(BASE_URL);
+      const manager = new Manager(BASE_URL, {
+        reconnectionDelay: 10,
+      });
       const socket1 = manager.socket("/");
       const socket2 = manager.socket("/asd");
 
       manager.on("reconnect_attempt", () => {
         socket1.on("connect", () => {
-          expect().fail();
+          done(new Error("should not happen"));
         });
         socket2.on("connect", () => {
           setTimeout(() => {
             socket2.disconnect();
             manager._close();
             done();
-          }, 500);
+          }, 50);
         });
         socket1.disconnect();
       });
 
       setTimeout(() => {
         manager.engine.close();
-      }, 1000);
+      }, 100);
     });
   });
 
@@ -441,20 +444,19 @@ describe("connection", () => {
         reconnection: true,
         reconnectionDelay: 10,
       });
-      const cb = () => {
-        socket.close();
-        expect().fail();
-      };
-      manager.on("reconnect_attempt", cb);
 
-      var socket = manager.socket("/valid");
+      manager.on("reconnect_attempt", () => {
+        done(new Error("should not happen"));
+      });
+
+      const socket = manager.socket("/valid");
       socket.on("connect", () => {
         // set a timeout to let reconnection possibly fire
         setTimeout(() => {
           socket.close();
           manager._close();
           done();
-        }, 1000);
+        }, 100);
       });
     });
   });
@@ -518,6 +520,28 @@ describe("connection", () => {
     });
   });
 
+  it("should stop trying to reconnect", () => {
+    return wrap((done) => {
+      const manager = new Manager("http://localhost:9823", {
+        reconnectionDelay: 10,
+      });
+
+      manager.on("reconnect_error", () => {
+        // disable current reconnection loop
+        manager.reconnection(false);
+
+        manager.on("reconnect_attempt", () => {
+          done(new Error("should not happen"));
+        });
+
+        setTimeout(() => {
+          manager._close();
+          done();
+        }, 100);
+      });
+    });
+  });
+
   // Ignore incorrect connection test for old IE due to no support for
   // `script.onerror` (see: http://requirejs.org/docs/api.html#ieloadfail)
   if (!global.document || hasCORS) {
@@ -549,12 +573,12 @@ describe("connection", () => {
       return wrap((done) => {
         const manager = new Manager("http://localhost:9823", {
           reconnection: false,
+          reconnectionDelay: 10,
         });
-        const cb = () => {
-          socket.close();
-          expect().fail();
-        };
-        manager.on("reconnect_attempt", cb);
+
+        manager.on("reconnect_attempt", () => {
+          done(new Error("should not happen"));
+        });
 
         manager.on("error", () => {
           // set a timeout to let reconnection possibly fire
@@ -562,7 +586,7 @@ describe("connection", () => {
             socket.disconnect();
             manager._close();
             done();
-          }, 1000);
+          }, 100);
         });
 
         var socket = manager.socket("/invalid");
@@ -574,9 +598,10 @@ describe("connection", () => {
         const manager = new Manager("http://localhost:9823", {
           reconnection: true,
           reconnectionAttempts: 2,
+          reconnectionDelay: 10,
         });
         let delay = Math.floor(
-          manager.reconnectionDelay() * manager.randomizationFactor() * 0.5
+          manager.reconnectionDelay() * manager.randomizationFactor() * 0.5,
         );
         delay = Math.max(delay, 10);
 
@@ -891,6 +916,32 @@ describe("connection", () => {
           socketFoo.disconnect();
           done();
         });
+      });
+    });
+  });
+
+  it("should close the engine upon decoding exception", () => {
+    return wrap((done) => {
+      const manager = new Manager(BASE_URL, {
+        autoConnect: true,
+        reconnectionDelay: 50,
+      });
+
+      let engine = manager.engine;
+
+      manager.on("open", () => {
+        nextTick(() => {
+          // @ts-expect-error emit() is private
+          manager.engine.emit("data", "bad");
+        });
+      });
+
+      manager.on("reconnect", () => {
+        expect(manager.engine === engine).to.be(false);
+        expect(engine.readyState).to.eql("closed");
+
+        manager._close();
+        done();
       });
     });
   });

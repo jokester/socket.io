@@ -1,5 +1,4 @@
 import { Http3Server, WebTransport } from "@fails-components/webtransport";
-import { Http3EventLoop } from "@fails-components/webtransport/lib/event-loop.js";
 import expect from "expect.js";
 import { Server } from "engine.io";
 import { Socket } from "../build/esm-debug/index.js";
@@ -16,8 +15,8 @@ async function setup(opts, cb) {
   const certificate = await generateWebTransportCertificate(
     [{ shortName: "CN", value: "localhost" }],
     {
-      days: 14, // the total length of the validity period MUST NOT exceed two weeks (https://w3c.github.io/webtransport/#custom-certificate-requirements)
-    }
+      days: 13, // the total length of the validity period MUST NOT exceed two weeks (https://w3c.github.io/webtransport/#custom-certificate-requirements)
+    },
   );
 
   const engine = new Server(opts);
@@ -48,7 +47,10 @@ async function setup(opts, cb) {
   })();
 
   h3Server.startServer();
-  h3Server.onServerListening = () => cb({ engine, h3Server, certificate });
+
+  await h3Server.ready;
+
+  cb({ engine, h3Server, certificate });
 }
 
 function success(engine, h3server, done) {
@@ -73,16 +75,12 @@ function createSocket(port, certificate, opts) {
           },
         },
       },
-      opts
-    )
+      opts,
+    ),
   );
 }
 
 describe("WebTransport", () => {
-  after(() => {
-    Http3EventLoop.globalLoop.shutdownEventLoop(); // manually shutdown the event loop, instead of waiting 20s
-  });
-
   it("should allow to connect with WebTransport directly", (done) => {
     setup({}, ({ engine, h3Server, certificate }) => {
       const socket = createSocket(h3Server.port, certificate, {
@@ -113,7 +111,7 @@ describe("WebTransport", () => {
           httpServer.close();
           success(engine, h3Server, done);
         });
-      }
+      },
     );
   });
 
@@ -137,7 +135,7 @@ describe("WebTransport", () => {
           httpServer.close();
           success(engine, h3Server, done);
         });
-      }
+      },
     );
   });
 
@@ -160,7 +158,7 @@ describe("WebTransport", () => {
             success(engine, h3Server, done);
           }
         });
-      }
+      },
     );
   });
 
