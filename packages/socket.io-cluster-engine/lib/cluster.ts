@@ -60,6 +60,7 @@ export class NodeClusterEngine extends ClusterEngine {
     message._source = MESSAGE_SOURCE;
 
     debug("send message to primary");
+    // @ts-expect-error process.send is not defined in all environments
     process.send(message, null, { swallowErrors: true }, ignoreError);
   }
 }

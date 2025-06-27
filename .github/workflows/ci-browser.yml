@@ -2,13 +2,13 @@ name: CI (browser)
 
 on:
   push:
+    branches:
+      - '**'
     paths:
       - 'packages/engine.io-parser/**'
       - 'packages/engine.io-client/**'
       - 'packages/socket.io-parser/**'
       - 'packages/socket.io-client/**'
-    tags-ignore:
-      - '**@*'
 
 permissions:
   contents: read
@@ -28,10 +28,10 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm ci
 
       - name: Compile each package
-        run: npm run compile --workspaces --if-present
+        run: pnpm run compile --recursive
 
       - name: Run tests
         run: npm test --workspace=socket.io-parser --workspace=socket.io-client

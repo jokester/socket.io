@@ -1,6 +1,6 @@
 {
   "name": "socket.io-client",
-  "version": "4.8.0",
+  "version": "4.8.1",
   "description": "Realtime application framework client",
   "keywords": [
     "realtime",
@@ -45,10 +45,10 @@
   },
   "types": "./build/esm/index.d.ts",
   "dependencies": {
-    "@socket.io/component-emitter": "~3.1.0",
+    "@socket.io/component-emitter": "workspace:~",
     "debug": "~4.3.2",
-    "engine.io-client": "~6.6.1",
-    "socket.io-parser": "~4.2.4"
+    "engine.io-client": "workspace:~",
+    "socket.io-parser": "workspace:~"
   },
   "scripts": {
     "compile": "rimraf ./build && tsc && tsc -p tsconfig.esm.json && ./postcompile.sh",

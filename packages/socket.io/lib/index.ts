@@ -1,4 +1,4 @@
-import http = require("http");
+import http from 'http';
 import type { Server as HTTPSServer } from "https";
 import type { Http2SecureServer, Http2Server } from "http2";
 import { createReadStream } from "fs";
@@ -7,7 +7,12 @@ import accepts = require("accepts");
 import { pipeline } from "stream";
 import path = require("path");
 import { attach, Server as Engine, uServer } from "engine.io";
-import type { ServerOptions as EngineOptions, AttachOptions } from "engine.io";
+import type {
+  ServerOptions as EngineOptions,
+  AttachOptions,
+  BaseServer,
+  Socket as RawSocket,
+} from "engine.io";
 import { Client } from "./client";
 import { EventEmitter } from "events";
 import { ExtendedError, Namespace, ServerReservedEventsMap } from "./namespace";
@@ -211,6 +216,9 @@ export class Server<
     SocketData
   >
 > {
+  /**
+   * the default concrete namespace
+   */
   public readonly sockets: Namespace<
     ListenEvents,
     EmitEvents,
@@ -238,12 +246,15 @@ export class Server<
   readonly encoder: Encoder;
 
   /**
-   * @private
+   * @private existing *concrete* namespaces name => namespace
    */
   _nsps: Map<
     string,
     Namespace<ListenEvents, EmitEvents, ServerSideEvents, SocketData>
   > = new Map();
+  /**
+   * @private consulted when a client wants to join a namespace
+   */
   private parentNsps: Map<
     ParentNspNameMatchFn,
     ParentNamespace<ListenEvents, EmitEvents, ServerSideEvents, SocketData>
@@ -263,7 +274,7 @@ export class Server<
   private _adapter?: AdapterConstructor;
   private _serveClient: boolean;
   private readonly opts: Partial<ServerOptions>;
-  private eio: Engine;
+  private eio: Engine; // Only truthy if inited via attach() // XXX: how is this different from this.engine?
   private _path: string;
   private clientPathRegex: RegExp;
 
@@ -444,6 +455,7 @@ export class Server<
     if (!arguments.length) return this._adapter;
     this._adapter = v;
     for (const nsp of this._nsps.values()) {
+      // for all existing nsps, switch to the new adapter
       nsp._initAdapter();
     }
     return this;
@@ -464,9 +476,16 @@ export class Server<
   }
 
   /**
-   * Attaches socket.io to a server or port.
+   * XXX: "main" method to attach?
+   *
+   * callsites:
+   * 1. listen()
+   * 2. constructor()
+   *
+   * Attaches socket.io to an HTTP server, by creating an eio.Server
    *
    * @param srv - server or port
+   * If a port in number or string is specified, create a new HTTP Server and listen on the port
    * @param opts - options passed to engine.io
    * @return self
    */
@@ -506,6 +525,11 @@ export class Server<
     return this;
   }
 
+  /**
+   * attach uServer app
+   * @param app
+   * @param opts
+   */
   public attachApp(app /*: TemplatedApp */, opts: Partial<ServerOptions> = {}) {
     // merge the options passed to the Socket.IO server
     Object.assign(opts, this.opts);
@@ -582,7 +606,7 @@ export class Server<
   ): void {
     // initialize engine
     debug("creating engine.io instance with opts %j", opts);
-    this.eio = attach(srv, opts);
+    this.eio = attach(srv as http.Server, opts);
 
     // attach static file serving
     if (this._serveClient) this.attachServe(srv);
@@ -703,6 +727,7 @@ export class Server<
   }
 
   /**
+   * as public method, this is "advanced usage"
    * Binds socket.io to an engine.io instance.
    *
    * @param engine engine.io (or compatible) server
@@ -723,11 +748,12 @@ export class Server<
    * @return self
    * @private
    */
-  private onconnection(conn): this {
+  private onconnection(conn: RawSocket): this {
+    // @ts-expect-error use of private
     debug("incoming connection with id %s", conn.id);
     const client = new Client(this, conn);
     if (conn.protocol === 3) {
-      // @ts-ignore
+      // @ts-expect-error use of private
       client.connect("/");
     }
     return this;
@@ -758,6 +784,7 @@ export class Server<
     ) => void,
   ): Namespace<ListenEvents, EmitEvents, ServerSideEvents, SocketData> {
     if (typeof name === "function" || name instanceof RegExp) {
+      // register a *parent* namespace, i.e. a namespace generator defined as Function OR RegExp
       const parentNsp = new ParentNamespace(this);
       debug("initializing parent namespace %s", parentNsp.name);
       if (typeof name === "function") {
@@ -776,11 +803,13 @@ export class Server<
       return parentNsp;
     }
 
+    // otherwise, create a concrete namespace
     if (String(name)[0] !== "/") name = "/" + name;
 
     let nsp = this._nsps.get(name);
     if (!nsp) {
       for (const [regex, parentNamespace] of this.parentNamespacesFromRegExp) {
+        // create with matched regex parent NS
         if (regex.test(name as string)) {
           debug("attaching namespace %s to parent namespace %s", name, regex);
           return parentNamespace.createChild(name as string);
@@ -1163,10 +1192,11 @@ emitterMethods.forEach(function (fn) {
   };
 });
 
-module.exports = (srv?, opts?) => new Server(srv, opts);
-module.exports.Server = Server;
-module.exports.Namespace = Namespace;
-module.exports.Socket = Socket;
+const defaultExport = (srv?, opts?) => new Server(srv, opts);
+export default defaultExport;
+defaultExport.Server = Server;
+defaultExport.Namespace = Namespace;
+defaultExport.Socket = Socket;
 
 export {
   Socket,

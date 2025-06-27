@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "skipLibCheck": true,
+    "target": "esnext",
+    "types": ["@cloudflare/worker-types", "@types/node"],
+    "moduleResolution": "bundler",
+    "lib": ["es2022"]
+  }
+}

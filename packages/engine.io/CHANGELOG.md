@@ -2,6 +2,9 @@
 
 | Version                                                                                              | Release date   |
 |------------------------------------------------------------------------------------------------------|----------------|
+| [6.6.4](#664-2025-01-28)                                                                             | January 2025   |
+| [6.6.3](#663-2025-01-23)                                                                             | January 2025   |
+| [6.6.2](#662-2024-10-09)                                                                             | October 2024   |
 | [6.6.1](#661-2024-09-21)                                                                             | September 2024 |
 | [6.6.0](#660-2024-06-21)                                                                             | June 2024      |
 | [6.5.5](#655-2024-06-18) (from the [6.5.x](https://github.com/socketio/engine.io/tree/6.5.x) branch) | June 2024      |
@@ -45,6 +48,43 @@
 
 
 # Release notes
+
+## [6.6.4](https://github.com/socketio/socket.io/compare/engine.io@6.6.3...engine.io@6.6.4) (2025-01-28)
+
+The bump of the `cookie` dependency was reverted, as it drops support for older Node.js versions (< 14).
+
+
+### Dependencies
+
+- [`ws@~8.17.1`](https://github.com/websockets/ws/releases/tag/8.17.1) (no change)
+
+
+
+## [6.6.3](https://github.com/socketio/socket.io/compare/engine.io@6.6.2...engine.io@6.6.3) (2025-01-23)
+
+This release contains a bump of the `cookie` dependency.
+
+Release notes: https://github.com/jshttp/cookie/releases/tag/v1.0.0
+
+
+### Dependencies
+
+- [`ws@~8.17.1`](https://github.com/websockets/ws/releases/tag/8.17.1) (no change)
+
+
+
+## [6.6.2](https://github.com/socketio/socket.io/compare/engine.io@6.6.1...engine.io@6.6.2) (2024-10-09)
+
+This release contains a bump of the `cookie` dependency.
+
+See also: https://github.com/advisories/GHSA-pxg6-pf52-xh8x
+
+
+### Dependencies
+
+- [`ws@~8.17.1`](https://github.com/websockets/ws/releases/tag/8.17.1) (no change)
+
+
 
 ## [6.6.1](https://github.com/socketio/socket.io/compare/engine.io@6.6.0...engine.io@6.6.1) (2024-09-21)
 

@@ -95,6 +95,7 @@ export class Socket<
 > {
   /**
    * An unique identifier for the session.
+   * randomly generated OR set from previous session
    */
   public readonly id: SocketId;
   /**
@@ -163,7 +164,7 @@ export class Socket<
   ) {
     super();
     this.server = nsp.server;
-    this.adapter = this.nsp.adapter;
+    this.adapter = nsp.adapter;
     if (previousSession) {
       this.id = previousSession.sid;
       this.pid = previousSession.pid;

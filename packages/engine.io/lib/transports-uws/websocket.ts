@@ -2,6 +2,8 @@ import { Transport } from "../transport";
 import debugModule from "debug";
 
 const debug = debugModule("engine:ws");
+import type * as parser_v4 from "engine.io-parser";
+import type * as parser_v3 from "../parser-v3/index";
 
 export class WebSocket extends Transport {
   protected perMessageDeflate: any;

@@ -10,6 +10,7 @@ import {
   AllButLast,
   Last,
   DecorateAcknowledgementsWithMultipleResponses,
+  DecorateAcknowledgements,
   RemoveAcknowledgements,
   EventNamesWithAck,
   FirstNonErrorArg,
@@ -134,9 +135,9 @@ export class Namespace<
   >
 > {
   public readonly name: string;
-
   /**
    * A map of currently connected sockets.
+   * sio.Socket#id => Socket
    */
   public readonly sockets: Map<
     SocketId,
@@ -161,7 +162,7 @@ export class Namespace<
     SocketData
   >;
 
-  protected _fns: Array<
+  private _fns: Array<
     (
       socket: Socket<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
       next: (err?: ExtendedError) => void,
@@ -401,6 +402,9 @@ export class Namespace<
     return new Socket(this, client, auth);
   }
 
+  /**
+   * when a Socket passes middlewares
+   */
   private _doConnect(
     socket: Socket<ListenEvents, EmitEvents, ServerSideEvents, SocketData>,
     fn: (
